@@ -1385,14 +1385,14 @@ $(document).ready(function() {
                 var componentsCunt  = thismodal.find('.component-container input[type="checkbox"]:checked').length;
                 params['platformname'] = thismodal.find('#incident-name-external').val();
 
-                        // var intIncidentNameExternal = ''
+                        var intIncidentNameExternal = ''
 
-                    // thismodal.find('.component-container input[type="checkbox"]:checked').siblings("span").each(function(){
-                    // intIncidentNameExternal = intIncidentNameExternal + '' +thismodal.find('#incident-name').val();     
-                    // })
-
-                            console.log(componentsCunt)
-                            
+                    thismodal.find('.component-container input[type="checkbox"]:checked').siblings("span").each(function(){
+                        intIncidentNameExternal =   intIncidentNameExternal + "[" + $(this).text().trim() + "]" +"\n";
+                          })
+                    //    intIncidentNameExternal = intIncidentNameExternal + '' +thismodal.find('#incident-name-external').val();  
+                       
+                            console.log(intIncidentNameExternal)
                                 var loops = 1;
                                 thismodal.find('.component-container input[type="checkbox"]:checked').each(function() {
                                 
