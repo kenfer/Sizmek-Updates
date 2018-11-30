@@ -1,0 +1,104 @@
+
+html {
+    overflow: hidden;
+}
+
+b, strong {
+    font-weight: 650;
+}
+
+#stats ul b, #stats ul strong {
+    font-weight: 650;
+    font-size: 15px;
+}
+
+#stats ul {
+    padding: 0;
+    margin: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+}
+#stats li {
+    color: #2f3941;
+    font-size: 12px;
+    text-align: left;
+    padding: 3px 0px;
+    border-bottom: 1px dashed #c1c1c1;
+    height: 28px;
+    overflow: hidden;
+}
+
+#indicators {
+    padding-bottom: 7px;
+    border-bottom: 1px dashed #c3c3c3;
+}
+#indicators span {
+    color: white;
+    background-color: #7b7b7b;
+    border-radius: 4px;
+    font-size: 10px;
+    padding: 1px 6px;
+    margin-right: 6px;
+    font-weight: 500;
+}
+
+.slatags {
+    font-size: 12px;
+    font-weight: 600;
+    margin-right: 5px;
+    color: #999;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif;
+}
+
+.slaBreach {
+    color: white;
+    background-color: tomato;
+    border-radius: 4px;
+    font-size: 10px;
+    padding: 1px 6px;
+    margin-right: 6px;
+}
+
+.slabot {
+    padding-top: 7px;
+}
+
+#stats strong {
+
+}
+
+.urgent {
+    background-color: #cc3b3b !important;
+}
+
+.high {
+    background-color: #2f9396 !important;
+}
+
+.normal {
+    background-color: #55b3ad !important;
+}
+
+.low {
+    background-color: #63a984 !important;
+}
+
+.slatype {
+    background-color: #9e9273 !important;
+}
+
+#indicators .slatimer {
+    background-color: transparent;
+    color: tomato;
+    font-size: 12px !important;
+    float: right;
+}
+
+.expired {
+    color: tomato;
+}
+
+.good {
+    color: lightseagreen;
+}

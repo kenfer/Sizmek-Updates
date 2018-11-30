@@ -1,0 +1,17 @@
+{
+  "name": "Ticket KPI Stats",
+  "author": {
+    "name": "Jessica Yang",
+    "email": "jessica.yang@sizmek.com",
+    "url": "https://sizmek.zendesk.com"
+  },
+  "defaultLocale": "en",
+  "private": true,
+  "location": {
+    "support": {
+      "ticket_sidebar": "assets/iframe.html"
+    }
+  },
+  "frameworkVersion": "2.0",
+  "version": "1.0"
+}

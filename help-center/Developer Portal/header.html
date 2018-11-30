@@ -1,0 +1,68 @@
+<div class="wrapper">
+    <div class="preload" style="position:fixed"><i id="icon-section" class="fa fa-angle-right"></i><i id="icon-section" class="fa fa-angle-down"></i></div>
+    <header class="header">
+        <div class="header-inner clearfix">
+            <div class="hamburger hamburger--arrow">
+                <div class="hamburger-box">
+                    <div class="hamburger-inner"></div>
+                </div>
+            </div>
+            <div class="sidenav-header sidenav-header-closed">
+                <div class="logo">{{#link 'help_center'}}
+                    <img src="{{logo_url}}" alt="{{t 'logo'}}">
+                    <span>Help Center</span>{{/link}}
+                </div>
+            </div>
+            <div class="header-breadcrumbs"></div>
+            {{link 'new_request' class='submit-a-request'}} {{#if alternative_locales}}
+            <select class="language-picker select-picker">
+                <option>{{current_locale.name}}</option>
+                {{#each alternative_locales}}
+                <option value="{{url}}">{{name}}</option>
+                {{/each}}
+            </select>
+            {{/if}}
+            <nav class="user-nav">
+                <div class="headerRight"> {{user_info}}</div>
+            </nav>
+        </div>
+    </header>
+    <div class="ui-resizable" id="sideNavigation">
+        <!--     <div class="ui-resizable-handle ui-resizable-e" style="z-index: 90; top: 0px;"></div> -->
+        <div id="filterContent">
+            <span>PRODUCT</span>
+            <select name="switchTag" id="switchTag" class="switchTag select-picker">
+                <option value="api">Sizmek API Documentation</option>
+                <option value="mdx_2_0">MDX 2.0</option>
+                <option value="mdx_nxt">Sizmek Advertising Suite</option>
+                <option value="dsp">DSP</option>
+                <option value="dmp">DMP</option>
+            </select>
+        </div>
+        <div id="sidenav">
+            <ul data-role="listview" id="nav-list">
+                <li class="api">
+                    <i class="fa fa-angle-right" id="icon-category"></i>
+                    <a class="categoryDrop">SAS API</a>
+                    <ul class="first-group-list" style="overflow: hidden; display: none;">
+                    </ul>
+                </li>
+                <li class="section" id="360001452952">
+                    <i id="icon-section" class="fa fa-angle-right"> </i>
+                    <a title="Sizmek DSP API Documentation" class="sectionDrop">DSP API</a>
+                    <ul class="sub-group-list" style="overflow: hidden; display:none;"></ul>
+                </li>
+                <li class="category" id="360000596271">
+                    <i class="fa fa-angle-right" id="icon-category"></i>
+                    <a class="categoryDrop">DMP API</a>
+                    <ul class="group-list"></ul>
+                </li>
+                <li></li> <!--  last li, border purposes -->
+            </ul>
+        </div>
+        <div class="sidenav-footer">
+            <div class="footer-right"><a href="https://www.sizmek.com/privacy-policy/optedout/" target="_blank">
+                    Privacy Policy</a>&nbsp; | &nbsp;<a href="https://www.sizmek.com/terms-use/" target="_blank">Terms of Use</a>
+            </div>
+        </div>
+    </div>

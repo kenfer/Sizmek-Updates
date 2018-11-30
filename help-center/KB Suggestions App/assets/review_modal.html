@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+   <script src="https://cdn.jsdelivr.net/g/jquery@3.2.1"></script>
+  <link rel="stylesheet" href="https://assets.zendesk.com/apps/sdk-assets/css/1/zendesk_garden.css" type="text/css">
+  <link rel="stylesheet" href="styles.css" type="text/css">
+  <script type="text/javascript" src="https://assets.zendesk.com/apps/sdk/2.0/zaf_sdk.js?12345"></script>
+</head>
+<body>
+<script type="text/javascript" src="scripts.js"></script>
+
+
+  <div class="modal hide fade" tabindex="-1" role="dialog" id="reviewModal">
+    <span class='spinner'></span>
+    <p class='spinner_text'>Loading</p>
+  </div>
+
+ 
+<script type="text/javascript">
+    var modalClient = ZAFClient.init();
+    var thisTicketID, thisAcc;
+    modalClient.on('app.registered', init);
+
+ function init(){
+  modalClient.trigger('reviewModalReady')
+  $("#reviewModal").css("z-index", "2000");
+  
+  modalClient.context().then(function(context){
+    thisAcc=context.account;
+    thisAcc.baseURL = fmt("https://%@.zendesk.com/", context.host)
+   });
+    
+    //client.invoke('resize', { width: '1040px', height: '620px' })
+ }
+
+
+function render_Review_Modal(commentArr){    
+    thisTicketID =commentArr.ticket_id;
+  var sHtml ='<div class="reviewmodal-header">'
+  if(commentArr.article_url)
+    sHtml+='<h3 class="reviewmodal_title">Review Existing Article<br><a class="reviewLink" href="'+commentArr.article_url+'" target="_blank">open original article</a></h3>'
+  else
+    sHtml +='<h3 class="reviewmodal_title">Review New Article</h3>'
+  sHtml+='<div class="articleDetails"><ul><li><span class="grey">Category : </span>'+ commentArr.updated_category+'</li><li><span class="grey">Section : </span> '+commentArr.updated_section+'</li><li><span class="grey">Article : </span>'+ commentArr.updated_article +'</li></ul></div></div><div class="reviewWrap"><div class="browser">'
+  if (commentArr.comments){
+    commentArr.comments.forEach(function(comment, idx){
+
+      sHtml +='<div class="commentnode"><div class="profilePic"><img class="profile" src="'+comment.author_photo+'"></div><div class="contentDiv"><div class="responseButtons">'
+      if (comment.channel_api){
+        sHtml+= '<button type="button" class="btn reviewVersion" id="reviewVersion" name="'+comment.current_ver+'___'+comment.review_ref+'"><i class="icon-pencil" style="margin-right: 5px;"></i>REVIEW VERSION</button>'
+      }
+      sHtml+='</div><span class="commentName" style="font-weight: 600;">'+comment.author_name+'</span><span class="commentTime" style="color: #B9B9B9;"> - '+comment.created_at+'</span><br><div class="commentText">'+comment.html_body+'</div></div></div>'
+    })
+  }
+  sHtml+='</div></div>';
+  $("#reviewModal").html(sHtml)
+  $('button.reviewVersion').on('click',openReviewIframe)
+}
+
+function openReviewIframe(event){
+    currVer = $(event.target).attr("name").split("___")[0];
+    revisionID = $(event.target).attr("name").split("___")[1];
+    var iframeVar = {
+        curr_version: currVer,
+        iframe_url: "https://support.sizmek.com/hc/en-us/articles/" + revisionID,
+        tid: thisTicketID
+      };
+      modalClient.trigger('openReviewIframe', iframeVar)
+}
+ 
+modalClient.on('modalReady_call', function(data) {
+    render_Review_Modal(data)
+    $("#reviewModal .btn").each(function() {
+      if (this.name.split("___")[0] < data.highest_ver && this.name.split("___")[0] > 0) this.remove();
+    });
+});
+</script>
+</body>
+</html>

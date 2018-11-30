@@ -1,0 +1,1036 @@
+<!doctype html>
+<html class="kbapp"  style="overflow:hidden">
+
+<head>
+    <link rel="stylesheet" href="https://assets.zendesk.com/apps/sdk-assets/css/1/zendesk_garden.css" type="text/css">
+    <link rel="stylesheet" href="styles.css" type="text/css">
+    <!--script type="text/javascript" src="scripts.js"></script-->
+</head>
+
+<body>
+    <script type="text/javascript" src="https://assets.zendesk.com/apps/sdk/2.0/zaf_sdk.js"></script>
+    <script src="https://cdn.jsdelivr.net/g/jquery@3.2.1"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.4/lodash.min.js"></script>
+    <script type="text/javascript" class="template">
+        template = {
+            alert: "",
+            flagged: "",
+            layout: {
+                "placeholder_text": {
+                    "title": "Placeholder text in the search bar",
+                    "value": "Type your search here"
+                }
+            },
+            list: "",
+            modal: "",
+            no_entries: "\u003cdiv class=\"well well-small\"\u003e\u003cp\u003eNo suggestions for this ticket.\u003c/p\u003e\u003c/div\u003e",
+            no_subject: "",
+            review_button: "<button type=\"button\" class=\"btn reviewbtn c-btn c-btn--lightaqua\" id=\"openReview\">REVIEW ARTICLE</button>"
+        }
+
+
+        requests = {
+            settings: {
+                url: '/api/v2/account/settings.json',
+                type: 'GET'
+            },
+            getUser: function(id) {
+                //console.log("get user id: ", id);
+                return {
+                    url: fmt('/api/v2/users/%@.json', id),
+                    type: 'GET'
+                };
+            },
+            updateUser: function(id, data) {
+                return {
+                    url: fmt('/api/v2/users/%@.json', id),
+                    type: 'PUT',
+                    data: data,
+                    dataType: 'application/json'
+                };
+            },
+            updateTicket: function(id, data) {
+                return {
+                    url: fmt('/api/v2/tickets/%@.json', id),
+                    type: 'PUT',
+                    data: data,
+                    dataType: 'json'
+                };
+            },
+            getComments: function(id) {
+                return {
+                    url: fmt('/api/v2/tickets/%@/comments.json', id),
+                    type: 'GET'
+                };
+            },
+            getTicket: function(id) {
+                return {
+                    url: fmt('/api/v2/tickets/%@.json', id),
+                    type: 'GET'
+                };
+            },
+            getHcArticle: function(id) {
+                return {
+                    url: fmt('/api/v2/help_center/articles/%@.json?include=translations,sections', id),
+                    type: 'GET'
+                };
+            },
+            searchHelpCenter: function(query) {
+                // Informed by JK: we dont use inbenta any more, should always use zd api search for kb app
+                //if (autoSearch) {
+                searchSource = "hc";
+                return {
+                    url: fmt('/api/v2/help_center/articles/search.json?per_page=%@&query=%@ -"Revision ver."', this.queryLimit(), query),
+                    type: 'GET'
+                };
+                /*} else {
+                  searchSource = "inbenta";
+                  return {
+                    //url: helpers.fmt('http://zendesk.inbenta.com/search/zendesk_hc_sizmek_en/?question=%@', query),
+                    //url: 'http://zendesk.inbenta.com/search/zendesk_hc_sizmek_en/?question=' + query,
+                    url: 'https://zendesk.inbenta.com/search/zendesk_hc_sizmek_en/?question=' + query,
+                    type: 'GET'
+                  };
+                }*/
+            },
+            searchWebPortal: function(query) {
+                return {
+                    url: fmt('/api/v2/search.json?per_page=%@&query=%@ type:topic', this.queryLimit(), query),
+                    type: 'GET'
+                };
+            },
+            fetchTopicsWithForums: function(ids) {
+                return {
+                    url: fmt('/api/v2/topics/show_many.json?ids=%@&include=forums', ids.join(',')),
+                    type: 'POST'
+                };
+            }
+        }
+
+        KB_translations = {
+            "list": {
+                "newtab_link": {
+                    "title": "option on the article results to open it in a new browser tab",
+                    "value": "Open in a new tab"
+                },
+                "copylink_link": {
+                    "title": "option on the article results to link it into a comment",
+                    "value": "Copy Link in comment"
+                },
+                "preview_link": {
+                    "title": "option on the article result to preview article in a preview box",
+                    "value": "Preview article"
+                }
+            },
+            "stop_words": {
+                "title": "DO NOT TRANSLATE",
+                "value": "a, about, above, across, after, again, against, all, almost, alone, along, already, also, although, always, am, among, an, and, another, any, anybody, anyone, anything, anywhere, are, area, areas, aren't, around, as, ask, asked, asking, asks, at, away, b, back, backed, backing, backs, be, became, because, become, becomes, been, before, began, behind, being, beings, below, best, better, between, big, both, but, by, c, came, can, cannot, can't, case, cases, certain, certainly, clear, clearly, come, could, couldn't, d, did, didn't, differ, different, differently, do, does, doesn't, doing, done, don't, down, downed, downing, downs, during, e, each, early, either, end, ended, ending, ends, enough, even, evenly, ever, every, everybody, everyone, everything, everywhere, f, face, faces, fact, facts, far, felt, few, find, finds, first, for, four, from, full, fully, further, furthered, furthering, furthers, g, gave, general, generally, get, gets, give, given, gives, go, going, good, goods, got, great, greater, greatest, group, grouped, grouping, groups, h, had, hadn't, has, hasn't, have, haven't, having, he, he'd, he'll, her, here, here's, hers, herself, he's, high, higher, highest, him, himself, his, how, however, how's, i, i'd, if, i'll, i'm, important, in, interest, interested, interesting, interests, into, is, isn't, it, its, it's, itself, i've, j, just, k, keep, keeps, kind, knew, know, known, knows, l, large, largely, last, later, latest, least, less, let, lets, let's, like, likely, long, longer, longest, m, made, make, making, man, many, may, me, member, members, men, might, more, most, mostly, mr, mrs, much, must, mustn't, my, myself, n, necessary, need, needed, needing, needs, never, new, newer, newest, next, no, nobody, non, noone, nor, not, nothing, now, nowhere, number, numbers, o, of, off, often, old, older, oldest, on, once, one, only, open, opened, opening, opens, or, order, ordered, ordering, orders, other, others, ought, our, ours, ourselves, out, over, own, p, part, parted, parting, parts, per, perhaps, place, places, point, pointed, pointing, points, possible, present, presented, presenting, presents, problem, problems, put, puts, q, quite, r, rather, really, right, room, rooms, s, said, same, saw, say, says, second, seconds, see, seem, seemed, seeming, seems, sees, several, shall, shan't, she, she'd, she'll, she's, should, shouldn't, show, showed, showing, shows, side, sides, since, small, smaller, smallest, so, some, somebody, someone, something, somewhere, state, states, still, such, sure, t, take, taken, than, that, that's, the, their, theirs, them, themselves, then, there, therefore, there's, these, they, they'd, they'll, they're, they've, thing, things, think, thinks, this, those, though, thought, thoughts, three, through, thus, to, today, together, too, took, toward, turn, turned, turning, turns, two, u, under, until, up, upon, us, use, used, uses, v, very, w, want, wanted, wanting, wants, was, wasn't, way, ways, we, we'd, well, we'll, wells, went, were, we're, weren't, we've, what, what's, when, when's, where, where's, whether, which, while, who, whole, whom, who's, whose, why, why's, will, with, within, without, won't, work, worked, working, works, would, wouldn't, x, y, year, years, yes, yet, you, you'd, you'll, young, younger, youngest, your, you're, yours, yourself, yourselves, you've, z"
+            },
+            "no_entries": {
+                "title": "Placeholder when there are no suggestions for the ticket",
+                "value": ""
+            },
+            "no_subject": {
+                "title": "placeholder for when there is no subject yet on the ticket",
+                "value": "Waiting for a subject to be defined..."
+            },
+            "help_text": {
+                "title": "instructions for the add to comment button",
+                "value": "Click the link to add it to the comment:"
+            },
+            "spinner": {
+                "title": "Loading text",
+                "value": "loading"
+            },
+            "agents_only": {
+                "title": "label appearing on private articles, this is a tag to show that this article is private",
+                "value": "Private"
+            },
+            "private_content_notice": {
+                "title": "Notice message displayed in modal preview for private content",
+                "value": "End-users will not be able to access this content."
+            },
+            "modal": {
+                "close": {
+                    "title": "Close button on the modal",
+                    "value": "Close"
+                },
+                "copy": {
+                    "title": "Adding article to the comment, this is a button",
+                    "value": "Add to comment"
+                }
+            }
+        }
+
+
+        KB_settings = {
+            "include_title": false,
+            "name": "KB Suggestions",
+            "title": "KB Suggestions",
+            "nb_entries": "8",
+            "search_hc": true,
+            "exclude_agent_only": false,
+            "custom_host": null
+        }
+    </script>
+
+    <section data-main>
+        <div class="app-container">
+            <div class="follow"></div>
+            <div class="input-append custom-search c-txt c-txt--inline u-mb-sm">
+                <input type="text" placeholder="Type your search here" class="c-txt__input">
+                <button class="c-btn c-btn--primary btn">Search</button>
+            </div>
+
+            <div id="view_container">
+                <p></p>
+            </div>
+        </div>
+    </section>
+    <footer></footer>
+    <script type="text/javascript">
+        var day = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        var client = ZAFClient.init();
+        var thisTicket, thisUser, currentAccount, followedTickets, defaultNumberOfEntriesToDisplay = 10;
+        var reviewRef, majorVer, currVer, nextVer, highestVer, revisionID;
+
+        client.on('app.registered', function() {
+            client.invoke('resize', {
+                width: '100%',
+                height: '306px'
+            });
+            activated();
+        });
+
+        function activated() {
+            getCurrentTicket().then(function(currentTicket) {
+                thisTicket = currentTicket;
+            })
+            getCurrentUser().then(function(currentUser) {
+                thisUser = currentUser;
+                //client.get('ticket.customField:fieldName')
+                //581785 - agent, 
+
+                if ((currentUser.role == "agent" || currentUser.role == "admin" || currentUser.role == 581785 || currentUser.role == 975295 || currentUser.role == 961279 || currentUser.role == 782345 || currentUser.role == 581795 || currentUser.role == 560549) && thisTicket.form.id == 16155) {
+                    getTicketCustomField('custom_field_22155349').then(function(val) {
+                        if (val == "review_an_existing_article_edit" || val == "review_a_new_article") {
+                            $('.custom-search').hide();
+                            switchTo('review_button');
+                            client.invoke('resize', {
+                                width: '100%',
+                                height: '80px'
+                            });
+                            $('#openReview').on('click', openReviewModal)
+
+                        }
+                    })
+                }
+                initialize();
+                getCurrentAcc().then(function(currentAcc) {
+                    currentAccont = currentAcc;
+                    currentAccont.baseURL = fmt("https://%@.zendesk.com/", currentAccont.subdomain)
+                })
+
+            })
+        }
+
+        function getTicketCustomField(field) {
+            return client.get('ticket.customField:' + field).then(function(data) {
+                return data['ticket.customField:' + field]
+            })
+        }
+
+        function search(query) {
+
+            switchTo('spinner');
+            if (setting('search_hc')) {
+                doRequest('searchHelpCenter', escape(query)).then(searchHelpCenterDone)
+            } else {
+                doRequest('searchWebPortal', query);
+            }
+        }
+
+        function searchHelpCenterDone(data) {
+            renderList(formatHcEntries(data.results));
+        }
+
+        function processSearchFromInput() {
+            var query = removePunctuation($('.custom-search input').val());
+            if (query && query.length) {
+                autoSearch = false;
+                search(query);
+            }
+        }
+
+        function formatHcEntries(result) {
+            var slicedResult = result.slice(0, this.numberOfDisplayableEntries());
+            var entries = []
+
+            $.each(slicedResult, function(memo, entry) {
+                var title = entry.title;
+                var url;
+
+                if (searchSource == "inbenta") url = entry.url.replace(/^https:\/\/.*.zendesk(-staging|-gamma)?.com\//, currentAccont.baseURL);
+                else url = entry.html_url.replace(/^https:\/\/.*.zendesk(-staging|-gamma)?.com\//, currentAccont.baseURL);
+
+                entries.push({
+                    id: entry.id,
+                    url: url,
+                    label: stripHTML(title),
+                    title: cleanThis(stripHTML(title))
+                });
+                //return memo;
+            }, [], this);
+            return {
+                entries: entries
+            };
+        }
+
+        function renderList(data) {
+
+            if ($.isEmptyObject(data.entries)) {
+                client.invoke('resize', {
+                    width: '100%',
+                    height: '140px'
+                });
+                switchTo('no_entries')
+            } else {
+                
+                var height = 132 +20*(data.entries.length) 
+                client.invoke('resize', {
+                    width: '100%',
+                    height: height+'px'
+                });
+                //switchTo('list', data);
+                $('#view_container').html('<div class="well well-small"><div class="entries"></div></div>');
+
+                $.each(data.entries, function(k, itm) {
+                    $('.entries').append('<div class="row-fluid entry"><div class="span10" style="width:96% !important"><div class="entry-text"><a href="' + (itm.html_url ? itm.html_url : itm.url) + '"  target="_blank" title="' + itm.label + '"  class="main preview_link' + (itm.html_url ? "" : "  inbenta") + '">' + itm.title + '</a></div></div>' + (itm.agent_only ? '<div class="span2"><span class="label label-warning">Private</span></div>' : '') + '')
+                })
+            }
+                /*var originToken = $(".placeholderWrapper iframe")[0].src.split("?")[1];
+                $(".placeholderWrapper iframe").remove();
+                var fullURL = $("#articleProxy").attr("src") + "?" + originToken;
+                $("#articleProxy").attr("src", fullURL);*/
+        }
+
+        function stripHTML(html) {
+            var tmp = document.createElement("DIV");
+            tmp.innerHTML = html;
+            return tmp.textContent || tmp.innerText || "";
+        }
+
+        function cleanThis(title) {
+            var contentTypes = [
+                ["@section", "section-title", "SECTION"],
+                ["@topic", "topic-title", "TOPIC"],
+                ["@article", "article-title", "ARTICLE"],
+                ["@issue", "issue-title", "ISSUE"],
+                ["@sub", "sub-title", "SUBPAGE"],
+                ["@overview", "overview-title", "OVERVIEW"],
+                ["@howto", "howto-title", "HOW TO"],
+                ["@usecase", "usecase-title", "USE CASE"],
+                ["@sizmekcertified", "certified-title", "SIZMEK CERTIFIED"],
+                ["@onboarding", "onboarding-title", "CLIENT ONBOARDING"],
+                ["@faq", "faq-title", "FAQ"],
+                ["@tips", "tips-title", "TIPS & TRICKS"],
+                ["@troubleshooting", "troubleshoot-title", "TROUBLESHOOTING"],
+                ["@bestpractices", "bestpractices-title", "BEST PRACTICES"],
+                ["@knownissues", "knownissues-title", "KNOWN ISSUES"],
+                ["@reference", "reference-title", "REFERENCE"],
+                ["@glossary", "glossary-title", "GLOSSARY"],
+                ["@video", "video-title", "VIDEO"],
+                ["@new", "new-title", "WHATS NEW"],
+                ["@supportkb", "kb-title", "SUPPORT KB"],
+                ["@mdx2", "mdx2-title", "MDX 2.0"],
+                ["@mdxnxt", "mdxnxt-title", "MDX NXT"],
+                ["@hc-admin", "hcadmin-title", "HC ADMIN"]
+            ];
+            for (var indx = 0; indx < contentTypes.length; ++indx) {
+                var reg = new RegExp(contentTypes[indx][0] + ' ', 'ig');
+                title = title.replace(reg, "<span class='" + contentTypes[indx][1] + "'>" + contentTypes[indx][2] + "</span>");
+            }
+            var newHTML = '';
+            var videoSpan = '<span class ="video-title">VIDEO</span>';
+            if (title.split(videoSpan).length > 1) {
+                for (var indy = 0; indy < title.split(videoSpan).length; ++indy) {
+                    newHTML += title.split(videoSpan)[indy];
+                }
+                title = newHTML + " " + videoSpan;
+            }
+            if (title.match('/|@getting-started|@ad-delivery|@data|@creative|@publishers|@certified|/ig')) title = title.trim().replace(/\@[\w-]+\s/ig, "");
+
+            return title;
+        }
+
+
+        function doRequest(func, parms) {
+            if (typeof requests[func] !== "function")
+                return false;
+
+            var args = new Array();
+            for (var i = 1; i < arguments.length; i++)
+                args.push(arguments[i]);
+
+
+            var reqHeader = requests[func].apply(this, args);
+
+            return client.request(reqHeader).then(function(data) {
+                    return data;
+                },
+
+                function(response) {
+                    console.error(response.responseText);
+                });
+        }
+
+        function openReviewModal() {
+            doRequest('getComments', thisTicket.id).then(getCommentsDone)
+        }
+
+        function getCommentUser(commentsSort) {
+            doRequest('getUser', commentsSort[loadingLeft - 1].author_id).then(function(data) {
+                var photoURL;
+                if (data.user.photo === null) photoURL = "https://i0.wp.com/assets.zendesk.com/images/2016/default-avatar-80.png?ssl=1";
+                else photoURL = data.user.photo.content_url;
+                commentsSort[loadingLeft - 1].author_name = data.user.name;
+                commentsSort[loadingLeft - 1].author_photo = photoURL;
+                loadingLeft--;
+                if (loadingLeft > 0) getCommentUser(commentsSort);
+            });
+        }
+
+        function getCommentsDone(data) {
+            reviewState = 1;
+            //$("#reviewModal").css("z-index", "2000");
+
+            var fromAPI, gotVersion, commentedOn;
+            loadingLeft = data.comments.length;
+
+            highestVer = 1;
+
+            var commentsSort = _.map(data.comments, function(comment, i) {
+
+                var cHTML = comment.html_body;
+                fromAPI = (comment.via.channel == "api" && cHTML.indexOf("Revision Version: ") > -1 && cHTML.indexOf("Reference No. ") > -1);
+                if (fromAPI) {
+                    var versionStr = cHTML.split("Revision Version: ")[1].split(" ")[0];
+                    majorVer = parseInt(versionStr.split(".")[0]);
+                    currVer = parseInt(versionStr.split(".")[1]);
+                    reviewRef = cHTML.split("Reference No. ")[1].split("</p>")[0];
+                }
+                if (currVer >= highestVer) highestVer = currVer;
+
+                commentedOn = new Date(comment.created_at);
+
+                var hours = commentedOn.getHours();
+                var minutes = commentedOn.getMinutes();
+                var ampm = hours >= 12 ? 'pm' : 'am';
+                hours = hours % 12;
+                hours = hours ? hours : 12;
+                minutes = minutes < 10 ? '0' + minutes : minutes;
+                var strTime = hours + ':' + minutes + ' ' + ampm;
+
+                commentedOn = day[commentedOn.getDay()] + " " + (commentedOn.getMonth() + 1) + "/" + commentedOn.getDate() + "/" + commentedOn.getFullYear() + " " + strTime;
+
+                return {
+                    "html_body": cHTML,
+                    "author_id": comment.author_id,
+                    "channel_api": fromAPI,
+                    "current_ver": currVer,
+                    "review_ref": reviewRef,
+                    "created_at": commentedOn
+                };
+            });
+
+            getCommentUser(commentsSort);
+
+            //var $modal = $("#reviewModal");
+            renderModal('reviewModal')
+                //$modal.html(renderTemplate("spinner"));
+                //$modal.show();
+
+            var modalReady = setInterval(function() {
+                if (loadingLeft === 0) {
+                    clearInterval(modalReady);
+                    commentsSort.reverse();
+                    var commentArr = {};
+                    commentArr.ticket_id = thisTicket.id;
+                    getTicketCustomField('custom_field_24340826').then(function(val) {
+                        commentArr.article_url = cleanThis(stripHTML(val));
+                    }); //cleanThis(stripHTML(getTicketCustomField('custom_field_24340826'))),
+                    getTicketCustomField('custom_field_24340796').then(function(val) {
+                        commentArr.updated_category = cleanThis(stripHTML(val));
+                    });
+                    getTicketCustomField('custom_field_24296543').then(function(val) {
+                        commentArr.updated_section = cleanThis(stripHTML(val));
+                    });
+                    getTicketCustomField('custom_field_24296553').then(function(val) {
+                        commentArr.updated_article = cleanThis(stripHTML(val));
+                        commentArr.highest_ver = highestVer;
+                        commentArr.comments = commentsSort;
+                        var reviewModalInterval=setInterval(function(){
+                            if(reviewModalClient.reviewModalReady){
+                                clearInterval(reviewModalInterval);
+                                reviewModalClient.trigger('modalReady_call', commentArr);
+                            }    
+                        },50)
+                        //$modal.html(render_Review_Modal(commentArr));
+                    });
+                }
+            }, 100);
+
+        }
+
+		var viewportW = $(top).width();
+		var viewportH = $(top).height();
+
+        function renderModal() {
+            client.invoke('instances.create', {
+                location: 'modal',
+                url: 'assets/review_modal.html'
+            }).then(function(modalContext) {
+                reviewModalClient = client.instance(modalContext['instances.create'][0].instanceGuid);
+                reviewModalClient.invoke('resize', {
+                    width: "1060px", //'1060px'
+                    height: "600px" //'600px'
+                    //hide .modal-header
+                    //.modal-body padding 0
+                    //729px to 315px
+                    //342px to 315px
+                    //332px to 315px
+                    //282px to 315px
+                    //#suggestEdit .modal-body-right select, #suggestEdit .modal-body-right input[type=text], #suggestEdit .modal-body-right table
+                    //to 315px
+                })
+                reviewModalClient.on('openReviewIframe', openReviewIframe)
+                reviewModalClient.on('reviewModalReady', function(){reviewModalClient.reviewModalReady=1} )
+            });
+        }
+
+        function openReviewIframe(iframeVar) {
+            client.invoke('instances.create', {
+                location: 'modal',
+                url: iframeVar.iframe_url
+            }).then(function(modalContext) {
+                HCModalClient = client.instance(modalContext['instances.create'][0].instanceGuid);
+                HCModalClient.invoke('resize', {
+                    width: "80vw", //'1040px'
+                    height: "80vh" //'600px'
+                }) 
+                HCModalClient.on('iframeLoaded', iframeLoadedHandler);
+                HCModalClient.on('showIframe', showIframeHandler)
+                HCModalClient.on('reviewEditorReady', sendIframeVersions)
+                HCModalClient.on('backBtn', backBtnHandler);
+                HCModalClient.on('resizeFrame', resizeFrameHandler)
+
+                HCModalClient.on('articleUpdated', articleUpdatedHandler)
+                HCModalClient.on('addComment', addCommentHandler);
+                HCModalClient.on('articleAdded', articleAddedHandler)
+
+                HCModalClient.on('updateVersionDone', updateVersionDoneHandler)
+                HCModalClient.on('errorMsg', errorMsgHandler)
+
+                HCModalClient.on('updateVersion', updateVersionHandler) // didn't find this event trigger from HC page
+            })
+            reviewModalClient.invoke('destroy');
+        }
+
+        function updateVersionHandler(data) {
+            var versionJSON = data.updateVersionJSON;
+            var $modal = _this.$("#reviewModal");
+            $modal.html(this.renderTemplate("spinner"));
+
+            _this.ajax('updateTicket', thisTicket.id(), versionJSON).done(function(result) {
+                var completedMsg = "<strong>New version created</strong><br/>A new version has been created with the additional changes.";
+                services.notify(completedMsg, 'notice');
+                _this.$("#reviewModal").modal("hide");
+            });
+        }
+
+        function updateVersionDoneHandler() {
+            var completedMsg = "<strong>New version created</strong><br/>A new version has been created with the additional changes.";
+            client.invoke('notify', completedMsg, 'notice')
+            HCModalClient.invoke('destroy')
+        }
+
+        function errorMsgHandler(data) {
+            //services.notify(data.msg, 'alert');
+            client.invoke('notify', data.msg, 'alert')
+        }
+
+        function articleAddedHandler(data) {
+            var ticketJSON;
+            var commentText = data.thisComment;
+            /*var $modal = _this.$("#reviewModal");
+            $modal.html(this.renderTemplate("spinner"));*/
+
+            if (currVer > 0) {
+                ticketJSON = {
+                    "ticket": {
+                        "comment": {
+                            "body": "New article with version " + majorVer + "." + currVer + " has been approved and published by " + thisUser.name + ".\n\nClick [HERE](" + data.thisURL + ") to view the published article.\n\nAdditional Comment:\n" + commentText,
+                            "author_id": thisUser.id
+                        }
+                    }
+                };
+            } else {
+                ticketJSON = {
+                    "ticket": {
+                        "comment": {
+                            "body": "Newly submitted article has been approved and published by " + thisUser.name + ".\n\nClick [HERE](" + data.thisURL + ") to view the published article.\n\nAdditional Comment:\n" + commentText,
+                            "author_id": thisUser.id
+                        }
+                    }
+                };
+            }
+            doRequest('updateTicket', thisTicket.id, ticketJSON).then(function(result) {
+                var completedMsg = "<strong>New Article Published</strong><br/>A new article has been created with the approved content.";
+                client.invoke('notify', completedMsg, 'notice')
+                HCModalClient.invoke('destroy')
+            });
+        }
+
+        function articleUpdatedHandler(data) {
+            var ticketJSON;
+            var commentText = data.thisComment;
+
+            getTicketCustomField('custom_field_24340826').then(function(val) {
+                if (currVer > 0) {
+                    ticketJSON = {
+                        "ticket": {
+                            "comment": {
+                                "body": "Suggested changes in version " + majorVer + "." + currVer + " has been approved and published by " + thisUser.name + ".\n\nClick [HERE](" + val + ") to view the published article.\n\nAdditional Comment:\n" + commentText,
+                                "author_id": thisUser.id
+                            },
+                            "status": 'solved'
+                        }
+                    };
+                } else {
+                    ticketJSON = {
+                        "ticket": {
+                            "comment": {
+                                "body": "Original version " + majorVer + "." + currVer + " has been restored by " + thisUser.name + ".\n\nClick [HERE](" + val + ") to view the published article.\n\nAdditional Comment:\n" + commentText,
+                                "author_id": thisUser.id
+                            },
+                            "status": 'solved'
+                        }
+                    };
+                }
+
+                doRequest('updateTicket', thisTicket.id, ticketJSON).then(function(results) {
+                    var completedMsg = "<strong>Article Published</strong><br/>The article has been updated with the approved content.";
+                    client.invoke('notify', completedMsg, 'notice');
+                    HCModalClient.invoke('destroy');
+                })
+            })
+        }
+
+        function addCommentHandler(data) {
+            var commentText = data.thisComment;
+
+            var ticketJSON = {
+                "ticket": {
+                    "comment": {
+                        "body": "Suggested changes in version " + majorVer + "." + currVer + " has been rejected by " + thisUser.name + ".\n\nAdditional Comment:\n" + commentText,
+                        "author_id": thisUser.id
+                    }
+                }
+            };
+            doRequest('updateTicket', thisTicket.id, ticketJSON).then(function(result) {
+                var completedMsg = "<strong>Changes rejected</strong><br/>Suggested changes has been rejected and contributor has been notified.";
+                client.invoke('notify', completedMsg, 'notice');
+                HCModalClient.invoke('destroy');
+            });
+        }
+
+        function resizeFrameHandler() {
+            HCModalClient.invoke('resize', {
+                width: '1040px',
+                height: '579px'
+            }).then(function() {
+                HCModalClient.invoke('resize', {
+                    width: '1040px',
+                    height: '580px'
+                })
+            })
+        }
+        function iframeLoadedHandler() {
+
+            var MsgConnectionEstablished = {
+                ticketID: thisTicket.id
+            }
+
+            if (currVer > 0) {
+                HCModalClient.majorVer = majorVer,
+                    HCModalClient.currVer = currVer,
+                    HCModalClient.highestVer = highestVer;
+                getTicketCustomField("custom_field_24296573").then(function(val) {
+                    MsgConnectionEstablished.articleID = val
+                })
+
+                getTicketCustomField("custom_field_24296523").then(function(val) {
+                    MsgConnectionEstablished.platformName = val;
+                    getTicketCustomField("custom_field_24340776").then(function(res) {
+                        MsgConnectionEstablished.platformChanged = val !== res;
+                    });
+                });
+                getTicketCustomField("custom_field_360008081932").then(function(val) {
+                    MsgConnectionEstablished.categoryId = val;
+                    getTicketCustomField("custom_field_360008081912").then(function(res) {
+                        MsgConnectionEstablished.categoryChanged = val !== res;
+                    });
+                });
+                getTicketCustomField("custom_field_360008168891").then(function(val) {
+                    MsgConnectionEstablished.sectionId = val;
+                    getTicketCustomField("custom_field_360008168871").then(function(res) {
+                        MsgConnectionEstablished.sectionChanged = val !== res;
+                    });
+                });
+
+                getTicketCustomField("custom_field_24303693").then(function(val) {
+                    MsgConnectionEstablished.parentName = val;
+                    getTicketCustomField("custom_field_24303683").then(function(res) {
+                        MsgConnectionEstablished.parentChanged = val !== res;
+                    });
+                });
+
+                getTicketCustomField("custom_field_24296553").then(function(val) {
+                    MsgConnectionEstablished.articleName = val;
+                    getTicketCustomField("custom_field_24340806").then(function(res) {
+                        MsgConnectionEstablished.articleChanged = val !== res;
+                    });
+                });
+
+                getTicketCustomField("custom_field_24340816").then(function(val) {
+                    MsgConnectionEstablished.tagsName = val;
+                    getTicketCustomField("custom_field_24296563").then(function(res) {
+                        MsgConnectionEstablished.tagsChanged = val !== res;
+                    });
+                });
+                getTicketCustomField("custom_field_22155349").then(function(val) {
+                    MsgConnectionEstablished.thisTicket = val;
+                    HCModalClient.trigger("connectionEstablished", MsgConnectionEstablished)
+                });
+            } else {
+                MsgConnectionEstablished.platformChanged = false,
+                MsgConnectionEstablished.categoryChanged = false,
+                MsgConnectionEstablished.sectionChanged = false,
+                MsgConnectionEstablished.parentChanged = false,
+                MsgConnectionEstablished.articleChanged = false,
+                MsgConnectionEstablished.tagsChanged = false;
+
+                getTicketCustomField("custom_field_24296573").then(function(val) {
+                    MsgConnectionEstablished.articleID = val
+                })
+                getTicketCustomField("custom_field_24340776").then(function(val) {
+                    MsgConnectionEstablished.platformName = val
+                })
+                getTicketCustomField("custom_field_360008081912").then(function(val) {
+                    MsgConnectionEstablished.categoryId = val
+                })
+                getTicketCustomField("custom_field_360008168871").then(function(val) {
+                    MsgConnectionEstablished.sectionId = val
+                });
+                getTicketCustomField("custom_field_24303683").then(function(val) {
+                    MsgConnectionEstablished.parentName = val
+                });
+                getTicketCustomField("custom_field_24340806").then(function(val) {
+                    MsgConnectionEstablished.articleName = val
+                });
+                getTicketCustomField("custom_field_24296563").then(function(val) {
+                    MsgConnectionEstablished.tagsName = val
+                });
+                getTicketCustomField("custom_field_22155349").then(function(val) {
+                    MsgConnectionEstablished.thisTicket = val;
+                    HCModalClient.trigger("connectionEstablished", MsgConnectionEstablished)
+                })
+            }
+        }
+
+        function showIframeHandler() {
+
+        }
+
+        function sendIframeVersions() {
+                console.log("sendIframeVersions");
+            var msg = {
+                ticketID: thisTicket.id,
+                majorVer: majorVer,
+                currVer: currVer,
+                highestVer: highestVer
+            };
+            getTicketTags().then(function(val) {
+                msg.ticketTags = val
+            })
+            getTicketCustomField("custom_field_22155349").then(function(val) {
+                msg.reviewType = val;
+                HCModalClient.trigger('addReviewUI', msg);
+
+            })
+        }
+
+        function getTicketTags() {
+            return client.get('ticket.tags').then(function(data) {
+                return data['ticket.tags'].join(',')
+            })
+        }
+
+        function backBtnHandler() {
+            openReviewModal();
+            HCModalClient.invoke('destroy');
+        }
+
+        function renderTemplate(tmp) {
+            var sFrm = '',
+                str = template[tmp];
+            if (template[tmp].indexOf("{{iframe \"about:blank\"}}") > -1) {
+                var s = fmt("origin=%@&app_guid=%@", encodeURIComponent(currentAccont.baseURL), client._appGuid);
+                var sFrm = '<iframe src="https://www.zendesk.com/wall/?' + s + '"></iframe>';
+                var str = template[tmp].replace(/{{iframe \"about:blank\"}}/g, sFrm)
+            }
+            var html = jQuery.parseHTML(str, '', true)
+            return html
+        }
+
+        function numberOfDisplayableEntries() {
+            return setting('nb_entries') || defaultNumberOfEntriesToDisplay;
+        }
+
+        function addEventForSearch() {
+            $(".custom-search input").on('keyup', function(e) {
+                if (e.keyCode == 13)
+                    processSearchFromInput();
+            });
+            $('.custom-search button').on('click', processSearchFromInput)
+        }
+
+        function addEventForFollow() {
+            doRequest('getUser', thisUser.id).then(function(res) {
+                followedTickets = (!res.user.user_fields.following_tickets) ? [] : res.user.user_fields.following_tickets.split(',')
+                bFollow = $.inArray(thisTicket.id.toString(), followedTickets) == -1
+                $('.follow').html('<button class="c-btn c-btn--primary ' +(bFollow?"follow":"unfollow")+'_ticket">' + (bFollow ? "FOLLOW" : "UN-FOLLOW") + " THIS TICKET" + "</button>");
+                $('.follow button').on('click', function() {
+                    if (bFollow)
+                        followedTickets.push(thisTicket.id.toString());
+                    else
+                        followedTickets.splice(followedTickets.indexOf(thisTicket.id.toString()), 1);
+
+                    var data = {
+                        "user": {
+                            "user_fields": {
+                                "following_tickets": followedTickets.toString()
+                            }
+                        }
+                    };
+                    doRequest('updateUser', thisUser.id, data).then(function() {
+                        bFollow = !bFollow
+                        $('.follow button').removeClass(bFollow?'unfollow_ticket':'follow_ticket').addClass(bFollow?'follow_ticket':'unfollow_ticket');
+                        $('.follow button').text(bFollow ? "FOLLOW THIS TICKET" : "UN-FOLLOW THIS TICKET");
+                    })
+                })
+            })
+        }
+
+        function initialize() {
+            if (thisTicket.form.id != 16155) { //support ticket; flag to identify support tkt or documentation tkt
+                addEventForSearch()
+                addEventForFollow()
+                if ($.isEmptyObject(thisTicket.subject)) return switchTo('no_subject');
+                var storeKey = thisTicket.id + " subject";
+
+                getKey(storeKey).then(function(val) {
+
+                    if (val !== thisTicket.subject) {
+                        setKey(storeKey, thisTicket.subject)
+
+                        autoSearch = true;
+                        search(subjectSearchQuery());
+                    }
+                })
+            } else {
+                getTicketCustomField('custom_field_22155349').then(function(val) {
+                    if (val == "review_a_flagged_article") {
+                        var reasonText;
+                        getTicketCustomField('custom_field_24296583').then(function(res) {
+
+                            switch (res) {
+                                case "article_flagged_reason_inaccurate_information":
+                                    reasonText = "Flagged for <b>Inaccurate Information</b>";
+                                    break;
+                                case "article_flagged_reason_insufficient_information":
+                                    reasonText = "Flagged for <b>Insufficient Information</b>";
+                                    break;
+                                case "article_flagged_reason_outdated_information":
+                                    reasonText = "Flagged for <b>Outdated Information</b>";
+                                    break;
+                                case "article_flagged_reason_broken_link":
+                                    reasonText = "Flagged for <b>Broken Link</b>";
+                                    break;
+                                case "article_flagged_reason_broken_image_or_video":
+                                    reasonText = "Flagged for <b>Broken Image or Video</b>";
+                                    break;
+                                case "article_flagged_reason_missing_attachment":
+                                    reasonText = "Flagged for <b>Missing Attachment</b>";
+                                    break;
+                                default:
+                                    reasonText = "Flagged for <b>Other Reasons</b>";
+                            }
+                            $('.custom-search').hide();
+                            switchTo('spinner');
+                            $('#view_container').html('<div class="flaggedReason">' + reasonText + '</div>')
+                            client.invoke('resize', {
+                                width: '100%',
+                                height: '80px'
+                            });
+                        })
+                    } else if (val == "review_a_requested_article") { /*show Create New Article button*/ }
+                })
+            }
+        }
+
+        function switchTo(tmp) {
+
+            //text = text.replace(/<wiki>(.+?)<\/wiki>/g, function(match, contents, offset, input_string){})
+            var sFrm = '',
+                str = template[tmp];
+            /* if(str.indexOf("{{iframe \"about:blank\"}}")>-1){
+               var s= fmt("origin=%@&app_guid=%@", encodeURIComponent(currentAccont.baseURL), client._appGuid);
+               var sFrm = '<iframe src="https://www.zendesk.com/wall/?'+s+'"></iframe>';
+               var str=template[tmp].replace(/{{iframe \"about:blank\"}}/g, sFrm)
+             }*/
+
+            var html = jQuery.parseHTML(str, '', true)
+
+            $('#view_container').html(html);
+
+        }
+
+        function getCurrentTicket() {
+            return client.get('ticket').then(function(data) {
+                return data['ticket']
+            });
+        }
+
+        function getCurrentUser() {
+            return client.get('currentUser').then(function(data) {
+                return data['currentUser'];
+            });
+        }
+
+        function getCurrentAcc() {
+            return client.get('currentAccount').then(function(data) {
+                return data['currentAccount'];
+            });
+        }
+
+        function subjectSearchQuery() {
+            return removeStopWords(thisTicket.subject, mem_stopwords());
+        }
+
+        function removeStopWords(str, trimWords) {
+            // Remove punctuation and trim
+            str = removePunctuation(str);
+            var words = str.match(/[^\s]+|\s+[^\s+]$/g);
+            var x, y = 0;
+            for (x = 0; x < words.length; x++) {
+                // For each word, check all the stop words
+                for (y = 0; y < trimWords.length; y++) {
+                    // Get the current word
+                    var word = words[x].replace(/\s+|[^a-z]+\'/ig, "");
+                    // Get the stop word
+                    var stop_word = trimWords[y];
+                    // If the word matches the stop word, remove it from the keywords
+                    if (word.toLowerCase() == stop_word) {
+                        // Build the regex
+                        var regex_str = "^\\s*" + stop_word + "\\s*$"; // Only word
+                        regex_str += "|^\\s*" + stop_word + "\\s+"; // First word
+                        regex_str += "|\\s+" + stop_word + "\\s*$"; // Last word
+                        regex_str += "|\\s+" + stop_word + "\\s+"; // Word somewhere in the middle
+                        var regex = new RegExp(regex_str, "ig");
+                        str = str.replace(regex, " ");
+                    }
+                }
+            }
+            return str;
+        }
+
+        function removePunctuation(str) {
+            return str.replace(/[\.,-\/#!$%\^&\*;:{}=\-_`~()]/g, " ").replace(/\s{2,}/g, " ");
+        }
+
+        function mem_stopwords() {
+            var StopWords = KB_translations.stop_words.value;
+            return StopWords.split(',').map(function(word) {
+                return word.trim();
+            });
+        }
+
+        function setKey(key, val) {
+
+            client.metadata().then(function(metadata) {
+
+                localStorage.setItem("install-" + metadata.installationId + ":" + key, val);
+            });
+        }
+
+        function getKey(key) {
+            return client.metadata().then(function(metadata) {
+                return localStorage.getItem(metadata.installationId + ":" + key);
+            });
+        }
+
+        function setting(t) {
+            return "name" === t && (t = "title"), KB_settings[t]
+        }
+
+        function fmt(t, e) {
+            for (var n = arguments.length, r = Array(n > 2 ? n - 2 : 0), i = 2; i < n; i++)
+                r[i - 2] = arguments[i];
+            var o = e;
+            (!$.isArray(o) || arguments.length > 2) && (o = [e].concat(r));
+            var a = 0;
+            return t.replace(/%@([0-9]+)?/g, function(t, e) {
+                return e = e ? parseInt(e, 10) - 1 : a++, t = o[e], null === t ? "(null)" : void 0 === t ? "" : typeof(t.toString) == "function" ? t.toString() : t
+            })
+        }
+
+        function queryLimit() {
+            // ugly hack to return more results than needed because we filter out agent only content
+            if (setting('exclude_agent_only') && !setting('search_hc')) {
+                return numberOfDisplayableEntries() * 2;
+            } else {
+                return numberOfDisplayableEntries();
+            }
+        }
+
+
+
+
+        var eventMethod = window.addEventListener ? "addEventListener" : "attachEvent";
+        var eventer = window[eventMethod];
+        var messageEvent = eventMethod == "attachEvent" ? "onmessage" : "message";
+
+        eventer(messageEvent, function(e) {
+            receiveMessage(e);
+        }, false);
+
+        function receiveMessage(e) {
+            // console.log(777777, e)
+            if (e.origin !== "https://support.sizmek.com")
+                return;
+
+            /*switch (e.data) {
+                case "pageUnload":
+                    pageUnload();
+                    break;
+                case "iframeLoad":
+                    iframeLoad();
+                    break;
+                default:
+                    uffaPage(e.data);
+                    break;
+            }*/
+        }
+    </script>
+</body>

@@ -1,0 +1,17 @@
+{
+  "name": "DashBoard App",
+  "author": {
+    "name": "Jessica Yang",
+    "email": "jessica.yang@sizmek.com",
+    "url": "https://sizmek.zendesk.com"
+  },
+  "defaultLocale": "en",
+  "private": true,
+  "location": {
+    "support": {
+      "nav_bar": "assets/iframe.html"
+    }
+  },
+  "version": "1.0",
+  "frameworkVersion": "2.0"
+}

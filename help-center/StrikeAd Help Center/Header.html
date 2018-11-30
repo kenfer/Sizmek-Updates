@@ -1,0 +1,27 @@
+<div class="wrapper">
+<header class="header">
+  <div class="header-inner clearfix">
+    <div class="logo">{{#link 'help_center'}}
+      <img src="{{logo_url}}" alt="{{t 'logo'}}">
+       <span>Help Center</span> <!--<span id="strikead">StrikeAd</span> <span id="line"></span>--> {{/link}}</div>
+    <nav class="user-nav">
+      <div id="filterContent">
+     
+      </div>
+      {{#if alternative_locales}}
+        <div class="dropdown language-selector" aria-haspopup="true">
+          <a class="dropdown-toggle">
+            {{current_locale.name}}
+          </a>
+          <span class="dropdown-menu dropdown-menu-end" role="menu">
+            {{#each alternative_locales}}
+              <a href="{{url}}" dir="{{direction}}" rel="nofollow" role="menuitem">
+                {{name}}
+              </a>
+            {{/each}}
+          </span>
+        </div>
+      {{/if}} <div class="headerRight">{{link 'new_request' class='submit-a-request'}} {{user_info}}</div>
+    </nav>
+  </div>
+</header>

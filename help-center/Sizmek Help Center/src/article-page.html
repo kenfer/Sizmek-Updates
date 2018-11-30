@@ -1,0 +1,200 @@
+{{#is article.id 360017844052}}
+	<meta name="robots" content="noindex, follow">
+{{/is}}
+
+<nav class="sub-nav">
+  <div class="sub-nav-inner">
+    {{breadcrumbs}} {{search}}
+
+    <header class="article-header">
+      <h1>{{#if article.internal}}
+        <span class="visibility-internal" data-title="{{t 'internal'}}">
+          <span class="visibility-internal-icon"></span>
+        </span>
+        {{/if}} 
+      {{#each article.labels}}
+			<span class="{{identifier}}-title" style="text-transform:uppercase">
+        {{#is identifier 'section'}}
+        SECTION
+        {{/is}}
+        {{#is identifier 'topic'}}
+        TOPIC
+        {{/is}}
+        {{#is identifier 'article'}}
+        ARTICLE
+        {{/is}}
+        {{#is identifier 'issue'}}
+        ISSUE
+        {{/is}}
+        {{#is identifier 'sub'}}
+        SUBPAGE
+        {{/is}}
+        {{#is identifier 'overview'}}
+        OVERVIEW
+        {{/is}}
+        {{#is identifier 'howto'}}
+        HOW TO
+        {{/is}}
+        {{#is identifier 'sizmekcertified'}}
+        SIZMEK CERTIFIED
+        {{/is}}
+        {{#is identifier 'onboarding'}}
+        ONBOARDING
+        {{/is}}
+        {{#is identifier 'faq'}}
+        FAQ
+        {{/is}}
+        {{#is identifier 'tips'}}
+        TIPS & TRICKS
+        {{/is}}
+        {{#is identifier 'troubleshooting'}}
+        TROUBLESHOOTING
+        {{/is}}
+        {{#is identifier 'reference'}}
+        REFERENCE
+        {{/is}}
+        {{#is identifier 'glossary'}}
+        GLOSSARY
+        {{/is}}
+        {{#is identifier 'new'}}
+        WHATS NEW
+        {{/is}}
+        {{#is identifier 'supportkb'}}
+        SUPPORT KB
+        {{/is}}
+        {{#is identifier 'kbmdx'}}
+        MDX
+        {{/is}}
+        {{#is identifier 'kbsas'}}
+        SAS
+        {{/is}}
+        {{#is identifier 'mdx2'}}
+        MDX 2.0
+        {{/is}}
+        {{#is identifier 'mdxnxt'}}
+        SAS
+        {{/is}}
+        {{#is identifier 'hc-admin'}}
+        HC ADMIN
+        {{/is}}
+      </span>
+			{{/each}} {{article.title}}
+      {{#each article.labels}}
+        {{#is identifier 'video'}}
+      	&nbsp;&nbsp;<span class="{{identifier}}-title" style="text-transform:uppercase">
+        VIDEO
+			</span>
+       {{/is}}
+      {{/each}}
+      </h1>
+    </header>
+  </div>
+</nav>
+
+<div class="article-wrapper" id="main-wrap">
+  <article class="main-column">
+
+
+      {{subscribe}}
+      <div class="article-info">
+        <div class="article-updated">Last Update: {{date article.updated_at}}</div>
+        	<div class="access-info">
+           		<i aria-hidden="true" class="fa fa-eye"></i> &nbsp; viewable by <span id="viewableby">end users</span><br>
+          	  <i aria-hidden="true" class="fa fa-pencil-square-o"></i> &nbsp; editable by <span id="editableby">agents</span><br>
+          </div>
+      </div>
+    <div class="article-body markdown">
+      {{article.body}}
+    </div>
+
+    <div class="article-attachments">
+      <ul class="attachments">
+        {{#each attachments}}
+        <li>
+          <a href="{{url}}" target="_blank">{{name}}</a>
+          <span>({{size}})</span>
+        </li>
+        {{/each}}
+      </ul>
+    </div>
+
+    <footer class="article-footer">
+      {{#with article}}
+      <div class="article-vote">
+        <span class="article-vote-question">{{t 'was_this_article_helpful'}}</span>
+        <div class="article-vote-controls">
+          {{vote 'up' class='article-vote-up' selected_class='article-voted' role='button'}} {{vote 'down' class='article-vote-down' selected_class='article-voted' role='button'}}
+        </div>
+        <small class="article-vote-count">
+          {{vote 'label' class='article-vote-label'}}
+        </small>
+      </div>
+      {{/with}}
+    </footer>
+
+    <div class="article-more-questions">
+      {{request_callout}}
+    </div>
+
+    <section class="article-comments">
+      <h3>{{t 'comments'}}</h3>{{#if comments}}
+      <ul class="comment-list">
+        {{#each comments}}
+        <li id="{{anchor}}" class="comment">
+          <div class="comment-avatar {{#if author.agent}} comment-avatar-agent {{/if}}">
+            <img src="{{author.avatar_url}}" alt="Avatar">
+          </div>
+          <div class="comment-container">
+            <header class="comment-header">
+              <strong class="comment-author">
+                {{#if author.url}}
+                <a href="{{author.url}}" target="_zendesk_lotus">{{author.name}}</a> {{else}} {{author.name}} {{/if}}
+              </strong>
+              <span class="comment-published">{{date created_at}}</span>
+              {{#if pending}}
+              <span class="comment-pending">{{t 'pending_approval'}}</span>
+              {{/if}}
+            </header>
+            <div class="comment-body markdown">{{body}}</div>
+            {{#if editor}}
+            <div class="comment-edited meta">
+              {{t 'comment_edited' editor_name=editor.name}} {{date edited_at timeago=true}}
+            </div>
+            {{/if}}
+            <footer class="comment-footer">
+              <span class="comment-actions">
+                {{#with ticket}}
+                <a href="{{url}}" target="_zendesk_lotus" class="escalation-badge">
+                        #{{id}}
+                      </a> {{/with}} {{actions}}
+              </span>
+            </footer>
+          </div>
+        </li>
+        {{/each}}
+      </ul>
+      {{/if}} {{pagination}} {{#form 'comment' class='comment-form'}}
+      <div class="comment-avatar">
+        {{user_avatar class='user-avatar'}}
+      </div>
+
+      <div class="comment-container" id="comment_form">
+        {{wysiwyg 'body' rows='4'}}
+        <div class="comment-form-controls">
+          {{input type='submit'}}
+        </div>
+      </div>
+      {{/form}}
+    </section>
+
+  </article>
+
+  <aside class="article-sidebar side-column">
+    <!-- {{recent_articles}} {{related_articles}} -->
+    <section class="in-this-articles">
+      <div class="quickNavMenu">
+        <h3>Table of Contents</h3>
+      </div>
+    </section>
+  </aside>
+</div>

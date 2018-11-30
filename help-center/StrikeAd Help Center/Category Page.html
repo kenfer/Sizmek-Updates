@@ -1,0 +1,49 @@
+<nav class="sub-nav">
+  <div class="sub-nav-inner">
+    {{breadcrumbs}} {{search}}
+<header class="page-header">
+  <h1>{{category.name}}</h1>
+</header>
+  </div>
+</nav>
+
+<p class="section-description">{{category.description}}</p>
+{{#if category.sections}}
+<div class="section-tree">
+ <div class="noContent">You are currently filtering content for the <span class="currPlat"> </span> platform, but there is
+no <span class="currPlat"> </span> content available in this section. If you are looking for information about the <span class="currPlat"> </span> platform, click <a href="https://support.sizmek.com/hc/en-us" target="_self"><span class="currPlat"> </span> home page</a>. Otherwise, switch to the <a href="#" id="switchPlatform"><span class="altPlat"> </span> platform</a>.</div>
+  {{#each sections}}
+  <section class="section">
+    <h3>
+      {{#if internal}}
+      <span class="visibility-internal" data-title="{{t 'internal'}}">
+        <span class="visibility-internal-icon"></span>
+      </span>
+      {{/if}}
+      {{#if description}}<span class="releaseTag">{{description}}</span>{{/if}} <a href="{{url}}">{{name}}</a>
+    </h3>
+    <ul class="article-list">
+      {{#each articles}}
+      <li {{#if promoted}} class="article-promoted" {{/if}}>
+        {{#if promoted}}
+        <span data-title="{{t 'promoted'}}">★</span>
+        {{/if}}
+        <a href="{{url}}">{{title}}</a>
+      </li>
+      {{/each}}
+    {{#if more_articles}}
+    <div style="margin-top:10px">
+    <a href="{{url}}" class="see-all-articles">
+      {{t 'show_all_articles' count=article_count}}
+    </a>
+      </div>
+    {{/if}}
+    </ul>
+  </section>
+  {{/each}}
+</div>
+
+{{else}}
+<i class="category-empty">
+    <a href="{{category.url}}">{{t 'empty'}}</a>
+  </i> {{/if}}

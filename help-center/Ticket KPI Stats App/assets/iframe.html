@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="https://assets.zendesk.com/apps/sdk-assets/css/1/zendesk_garden.css" type="text/css">
+    <link rel="stylesheet" href="styles.css" type="text/css">
+    <script src="https://cdn.jsdelivr.net/g/jquery@3.2.1"></script>
+</head>
+
+<body>
+    <script type="text/javascript" src="https://assets.zendesk.com/apps/sdk/2.0/zaf_sdk.js"></script>
+    <div id="indicators">
+        <span class="platform">PLATFORM MISSING</span><span class="slatype"></span><span class="tkt_priority"></span><span class='slatimer'></span>
+    </div>
+    <div id="wrapper">
+        <div id="stats">
+            <ul>
+                <li>
+                    <p class="nIteration"></p>
+                </li>
+                <li>
+                    <p class="dOpened"></p>
+                </li>
+                <li id="dayspending" class="stats">
+                    <p class="dPending"></p>
+                </li>
+            </ul>
+        </div>
+        <div id="additional"></div>
+    </div>
+    <div class="slabot"><span class="slatags"></span><span class="SLA-tags"></span></div>
+    <script>
+      var client = ZAFClient.init();
+      var dc, n1, n2, dcolor = [];
+      var ticket_KPI = {
+          count_audit: 0,
+          count_itr: 0,
+          audit_perPage: 10,
+          lastUpdate: 0,
+          supportCollaborators: []
+      }
+      var latestUpdateFlag = 0;
+
+      var colorScale = [{ //total iterations 
+          '0-1': 'lightseagreen',
+          '2-3': 'darkorange',
+          '4-5': 'tomato'
+      }, { //total resolutions hours, or hours since last support update  
+          '0-24': 'lightseagreen',
+          '24-72': 'darkorange',
+          '72-1000000': 'tomato'
+      }, { //current hours with ticket owner
+          '0-48': 'lightseagreen',
+          '48-96': 'darkorange',
+          '96-1000000': 'tomato'
+      }];
+
+      function between(x, min, max) {
+          return x >= min && x <= max;
+      }
+
+      function getCS(csi) {
+          $.each(colorScale[csi], function(name, value) {
+              n1 = parseInt(name.split('-')[0], 10);
+              n2 = parseInt(name.split('-')[1], 10);
+
+              if (between(dc, n1, n2)) {
+                  dcolor[csi] = value;
+              }
+          })
+      }
+
+      function getCurrentTicket() {
+          return client.get('ticket').then(function(data) {
+              return data['ticket'];
+          });
+      }
+
+      function getCurrentUser() {
+          return client.get('currentUser').then(function(data) {
+              return data['currentUser'];
+          });
+      }
+
+      function calcTime(retv) {
+          if (retv >= 1) {
+              var text = retv > 24 ? (retv / 24).toFixed(0) + " days" : retv.toFixed(0) + " hours";
+              if (retv.toFixed(0) == 1) text = "1 hour";
+          } else {
+              var text = (retv * 60).toFixed(0) + " minutes";
+          }
+          return text;
+      }
+
+      function pendingDaysCount(tkt) {
+          var tPending = new Date(tkt.updatedAt),
+              tEnd = new Date(Date.now()),
+              retV = (tEnd - tPending) / (1000 * 60 * 60);
+          dc = retV, getCS(2);
+
+          var txt = calcTime(retV);
+
+          $('.dPending').html("<strong style='color:" + dcolor[2] + "'>" + txt + "</strong> since pending");
+      }
+
+      function openDaysCount(tkt) {
+          var tStart = new Date(tkt.createdAt),
+              tEnd = (tkt.status == "solved" || tkt.status == "closed") ? new Date(tkt.updatedAt) : new Date(Date.now()),
+              retV = (tEnd - tStart) / (1000 * 60 * 60);
+          dc = retV, getCS(1);
+
+          var txt = calcTime(retV);
+
+          if (tkt.status == "solved" || tkt.status == "closed") {
+              $('.dOpened').html("<strong style='color:" + dcolor[1] + "'>" + txt + "</strong> for total resolution");
+          } else $('.dOpened').html("<strong style='color:" + dcolor[1] + "'>" + txt + "</strong> since ticket created");
+      }
+
+      function init() {
+          getCurrentUser().then(function(currentUser) {
+              getCurrentTicket().then(function(currentTicket) {
+                  initTktSupportCollaborators(currentTicket.comments);
+                  tagsCheck(currentTicket, currentTicket.tags);
+                  openDaysCount(currentTicket);
+                  slaTimer();
+                  initTicketWithStatus(currentTicket);
+              });
+          });
+      };
+
+      function getObjects(obj, key, val) {
+          var objects = [];
+          for (var i in obj) {
+              if (!obj.hasOwnProperty(i)) continue;
+              if (typeof obj[i] == 'object') {
+                  objects = objects.concat(getObjects(obj[i], key, val));
+              } else if (i == key && obj[key] == val) {
+                  objects.push(obj);
+              }
+          }
+          return objects;
+      };
+
+      function initTktSupportCollaborators(comments) {
+          for (var i = 0; i < comments.length; i++) {
+              var commenter = comments[i].author;
+              if ($.inArray(commenter.id, ticket_KPI.supportCollaborators) == -1 && $.inArray("view_support_content", commenter.tags) > -1) {
+                  ticket_KPI.supportCollaborators.push(commenter.id)
+              }
+          }
+      }
+
+      function tagsCheck(currentTicket, tags) {
+
+          var priorityTag = currentTicket.priority == "urgent" ? "EXPEDITED" : currentTicket.priority.toUpperCase();
+          var expack = 0;
+
+          $(".slatags").html('<strong>SLA</strong> Breach:'), $(".SLA-tags").text('Checking...');
+          $('.tkt_priority').removeClass().addClass('tkt_priority');
+          $('.tkt_priority').addClass(currentTicket.priority).html(priorityTag);
+
+          for (var j = 0; j < tags.length; j++) {
+              var val = tags[j].toLowerCase();
+
+              if (val.indexOf("sla") > -1 && val.indexOf("breach") > -1 && val.indexOf("sla_") < 0) {
+                  //replace known sla breach tag names here
+                  val = val.replace('sla2.0_breach_initial_response', "INITIAL RESPONSE");
+                  val = val.replace('sla2.0_breach_tier1', 'TIER 1');
+                  val = val.replace('sla2.0_breach_tier2', 'TIER 2');
+                  val = val.replace('sla2.0_breach_tier3', 'TIER 3');
+                  val = val.replace('sla2.0_breach_tier4', 'TIER 4');
+
+                  if ($(".SLA-tags").text() == "Checking...") $(".SLA-tags").text('');
+                  $(".SLA-tags").append("<span class='slaBreach'>" + val + "</span>");
+              }
+
+              if (val.indexOf("_sla") > -1 && val.indexOf("initial_sla") < 0) {
+                  var slaText = val.split("_sla")[0].replace("24_7", "24 / 7").toUpperCase() + " SLA";
+                  $(".slatype").html(slaText);
+              }
+
+              if (val.indexOf('expedite_ack') > -1) expack = 1;
+
+              if (j == tags.length - 1 && $(".SLA-tags").text().indexOf("Checking...") > -1) {
+                  $(".slatags").html('<strong>Awesome!</strong> SLA not breached.');
+                  $(".SLA-tags").html('');
+                  if (priorityTag == "EXPEDITED" > -1 && expack == 0) $(".slatags").html("Please <strong>acknowledge</strong> this expedited ticket!");
+              }
+
+              if (val.indexOf("platform_") > -1 && val.indexOf("platform_f") < 0 && val.indexOf("platform__") < 0 && val.indexOf("_platform") < 0) {
+                  switch (val.split("platform_")[1]) {
+                      case "mdx2_0":
+                          val = "MDX";
+                          break;
+                      case "mdx_nxt":
+                          val = "SAS";
+                          break;
+                      case "dsp":
+                          val = "DSP";
+                          break;
+                      case "dmp":
+                          val = "DMP";
+                          break;
+                      case "new_dsp_dmp":
+                          val = "New DSP";
+                          break;
+                      case "zendesk_helpcenter":
+                          val = "ZD / HC";
+                          break;
+                      case "wiki":
+                          val = "WIKI";
+                          break;
+                      case "na":
+                          val = "Not Applicable";
+                          break;
+                      case "other":
+                          val = "Other";
+                          break;
+                      default:
+                          val = val.split("platform_")[1];
+                          break;
+                  }
+                  $(".platform").html(val);
+              }
+          }
+          
+          if(currentTicket.form.id == 16155) { 
+              $(".platform").html("KB CONTRIBUTION");
+              $(".slatype").hide();
+          }
+      }
+
+      function pad(n) {
+          return (n < 10) ? '0' + n : n;
+      }
+
+      function slaTimer() {
+          var slaobj, sladue, slatimer, currgroup;
+          client.get('ticket.customField:custom_field_21961139').then(function(data) {
+              slaobj = Object.keys(data)[1];
+              sladue = data[slaobj];
+          });
+          client.get('ticket.assignee').then(function(data) {
+              currgroup = Object.keys(data)[1];
+              currgroup = data[currgroup];
+          });
+
+          clearInterval(slatimer);
+          slatimer = false;
+          slatimer = setInterval(function() {
+              if (sladue != null) {
+                  var currT = currgroup.group.name.toUpperCase();
+                  var tNow = new Date(Date.now()),
+                      tDue = new Date(sladue);
+
+                  var seconds = Math.floor((tDue - (tNow))/1000);
+                  var minutes = Math.floor(seconds/60);
+                  var hours = Math.floor(minutes/60);
+                  var days = Math.floor(hours/24);
+
+                  hours = hours - (days*24);
+                  minutes = minutes - (days*24*60)-(hours*60);
+                  seconds = seconds - (days*24*60*60)-(hours*60*60)-(minutes*60);
+                  
+                  if ($(".SLA-tags").text().indexOf(currT) < 0) {
+                      $(".slatimer").text(pad(hours) + ":" + pad(minutes) + ":" + pad(seconds));
+                      $(".slatimer").css('color', '#2f3941');
+                      $(".slatimer").css('font-weight', 'normal');
+                      $(".slatimer").css('font-size', '14px');
+                      $(".slatimer").css('background-color', '#e7ffff');
+    
+                      if (days > 0) $(".slatimer").text("24+ hours");
+                      if (days == 0 && hours <= 3 && tDue > tNow) $(".slatimer").css('background-color', '#e7ffea');
+                      if (days == 0 && hours <= 2 && tDue > tNow) $(".slatimer").css('background-color', '#f3ffca');
+                      if (days == 0 && hours <= 1 && tDue > tNow) $(".slatimer").css('background-color', '#fff5c7');
+
+                      if (days == 0 && hours == 0 && minutes <= 30 && tDue > tNow) {
+                          $(".SLA-tags").html('');
+                          $(".slatags").addClass("expired").html("<strong>SLA</strong> expiring soon !");
+                          $(".slatimer").css('background-color', '#fff2ed');
+                          $(".slatimer").css('color', 'tomato');
+                      }
+                      if (tDue <= tNow && $(".SLA-tags").text() == "") {
+                          $(".slatimer").text("00:00:00");
+                          $(".slatimer").css('background-color', '#fff2ed');
+                          $(".slatimer").css('color', 'tomato');
+                          $(".slatags").addClass("expired").html("<strong>SLA</strong> expired. Please update this ticket ASAP.");
+                      }
+                      if ($(".slatimer").text()=="NaN:NaN:NaN") $(".slatimer").text("");
+                      
+                  } else {
+                      $(".slatimer").text("SLA Expired");
+                      $(".slatimer").css('color', 'tomato');
+                  }
+              }
+          }, 1000);
+      }
+
+      function initTicketWithStatus(tkt, url) {
+          if (tkt.status == "new" || ticket_KPI.supportCollaborators.length == 0) {
+              // dont need ajax call, maybe override some wording here
+              $('.nIteration').html("<strong style='color:lightseagreen'>FCR</strong> opportunity !");
+              $('.dPending').html('No support response yet');
+              return;
+          }
+          if (tkt.status == "pending") {
+              pendingDaysCount(tkt);
+          }
+
+          if (!url) url = "/api/v2/tickets/" + tkt.id + "/audits.json?per_page=" + ticket_KPI.audit_perPage + "&page=1&sort_order=desc";
+
+          var settings = {
+              url: url,
+              type: "GET",
+              contentType: 'application/json'
+          }
+          return client.request(settings).then(function(data) {
+              url = data.next_page, ticket_KPI.count = data.count;
+
+              $.each(data.audits, function(idx, itm) {
+                  var flt = getObjects(itm.events, "field_name", "status");
+                  if (flt.length > 0) {
+                      if (flt[0].value == "open" && (flt[0].previous_value == "solved" || flt[0].previous_value == "pending"))
+                          ticket_KPI.count_itr += 1;
+                  }
+                  var cmt = getObjects(itm.events, "type", "Comment");
+                  if (cmt.length > 0) {
+                      if ($.inArray(cmt[0].author_id, ticket_KPI.supportCollaborators) > -1 && (tkt.status == "open" || tkt.status == "hold") && !latestUpdateFlag) {
+                          tPending = itm.created_at;
+                          latestUpdateFlag = 1;
+                      }
+                  }
+              });
+
+              dc = ticket_KPI.count_itr;
+              getCS(0);
+
+              if (typeof url != "string" && ticket_KPI.count_itr == 0) {
+                  $('.nIteration').html("<strong style='color:lightseagreen'>FCR</strong> opportunity !");
+
+                  if(tkt.status == "solved" || tkt.status == "closed") $('.nIteration').html("<strong style='color:" + dcolor[0] + "'>FCR</strong> achieved !");
+
+              } else if (ticket_KPI.count_itr > 5)  $('.nIteration').html("<strong style='color:" + dcolor[0] + "'>5+</strong> total iterations");
+
+             if (typeof url === "string") initTicketWithStatus(tkt, url);
+             else if (ticket_KPI.count_itr !== 0) $('.nIteration').html("<strong style='color:" + dcolor[0] + "'>" + ticket_KPI.count_itr + "</strong> total iterations")
+
+              // pending is done seperately to get quick response
+              if (ticket_KPI.lastUpdate) return;
+              if (tkt.status == "solved" || tkt.status == "closed") {
+                  var tEnd = new Date(Date.now()),
+                      tPending = new Date(tkt.updatedAt),
+                      retV = (tEnd - tPending) / (1000 * 60 * 60);
+                  dc = retV, getCS(2);
+
+                  var txt = calcTime(retV);
+
+                  $('.dPending').html("<strong style='color:" + dcolor[2] + "'>" + txt + "</strong> since solved");
+                  ticket_KPI.lastUpdate = 1;
+              }
+              if (tPending != null) {
+                  if (tkt.status == "open" || tkt.status == "hold") {
+                      var tEnd = new Date(Date.now()),
+                          tPend = new Date(tPending),
+                          retV = (tEnd - tPend) / (1000 * 60 * 60);
+                      dc = retV, getCS(2);
+
+                      var txt = calcTime(retV);
+
+                      $('.dPending').html("<strong style='color:" + dcolor[2] + "'>" + txt + "</strong> since last support update");
+                      ticket_KPI.lastUpdate = 1;
+                  }
+              }
+          })
+      }
+      client.on('app.registered', function() {
+          $("#stats > ul").find("li").each(function() {
+              $(this).children("p").html('<img src="loading.png">')
+          });
+          client.invoke('resize', {
+              width: '100%',
+              height: '140px'
+          });
+          init();
+      });
+      client.on('app.activated', function(evt) {
+          slaTimer();
+      });
+      client.on('*.changed', function(evt) {
+          if (evt.propertyName != "comment.text") {
+              getCurrentTicket().then(function(currentTicket) {
+                  tagsCheck(currentTicket, currentTicket.tags);
+                  openDaysCount(currentTicket);
+              });
+          }
+      });
+      client.on('ticket.submit.done', function(evt) {
+          $("#stats > ul").find("li").each(function() {
+              $(this).children("p").html('<img src="loading.png">')
+          });
+          getCurrentTicket().then(function(currentTicket) {
+              setTimeout(function() {
+                  ticket_KPI = {
+                      count_audit: 0,
+                      count_itr: 0,
+                      audit_perPage: 10,
+                      lastUpdate: 0,
+                      supportCollaborators: []
+                  }
+                  latestUpdateFlag = 0;
+                  initTktSupportCollaborators(currentTicket.comments);
+                  initTicketWithStatus(currentTicket);
+              }, 3000);
+          });
+      });
+    </script>
+</body>
+</html>

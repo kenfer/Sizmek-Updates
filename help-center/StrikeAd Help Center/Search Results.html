@@ -1,0 +1,40 @@
+<nav class="sub-nav">
+  <div class="sub-nav-inner">
+    {{breadcrumbs}} {{search}}
+<!--<h1 class="searchStatus">Searching <img src="/hc/theme_assets/539845/200023575/loading.GIF" class="loaderDots"></h1>-->
+  </div>
+</nav>
+
+<div class="search-results">
+
+
+  <section class="search-results-column">
+    <h2 class="search-results-subheading">
+      Search Results
+    </h2>
+    {{#if article_results}}
+    <ul class="search-results-list">
+      {{#each article_results}}
+      <li class="search-result">
+        <a href="{{url}}" class="search-result-link">{{title}}</a> {{#if vote_sum}}
+        <span class="search-result-votes">{{vote_sum}}</span>
+        {{/if}}
+        <div class="search-result-meta">{{meta}}</div>
+        <div class="search-result-description">{{text}}</div>
+      </li>
+      {{/each}}
+      <li class="search-result">
+        {{pagination}}
+      </li>
+    </ul>
+    <ul class="search-results-list-temp">
+      <li class="loaderSpin"><img src="/hc/theme_assets/539845/200023575/loading_large_icon.gif" style="border:0px"></li>
+    </ul>
+    {{else}}
+    <p style="padding-top:30px">
+      {{t 'no_results' query=query}} {{#link 'help_center'}} Browse our Help Center. {{/link}}
+    </p>
+    {{/if}}
+  </section>
+
+</div>

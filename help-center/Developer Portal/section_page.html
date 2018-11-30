@@ -1,0 +1,114 @@
+<nav class="sub-nav">
+  <div class="sub-nav-inner">
+    {{breadcrumbs}} {{search}}
+<header class="page-header">
+  <h1>{{#if section.internal}}
+    <span class="visibility-internal" data-title="{{t 'internal'}}">
+      <span class="visibility-internal-icon"></span>
+    </span>
+  {{/if}} {{section.name}}</h1>
+</header>
+  </div>
+</nav>
+<p class="section-description">{{section.description}}</p>
+<div class="subscriptionContainer">
+<span>{{subscribe}}</span>
+</div>
+<div class="noContent">Please wait while we transfer you to <span class="currPlat"> </span> homepage.</div>
+{{#if section.articles}}
+  <ul class="article-list">
+    {{#each section.articles}}
+      <li {{#if promoted}} class="article-promoted" {{/if}}>
+        {{#if promoted}}
+          <span data-title="{{t 'promoted'}}">★</span>
+        {{/if}}
+        <a href="{{url}}">
+        {{#each labels}}
+            <span class="{{identifier}}-title" style="text-transform:uppercase">
+        {{#is identifier 'section'}}
+        SECTION
+        {{/is}}
+        {{#is identifier 'topic'}}
+        TOPIC
+        {{/is}}
+        {{#is identifier 'article'}}
+        ARTICLE
+        {{/is}}
+        {{#is identifier 'issue'}}
+        ISSUE
+        {{/is}}
+        {{#is identifier 'sub'}}
+        SUBPAGE
+        {{/is}}
+        {{#is identifier 'overview'}}
+        OVERVIEW
+        {{/is}}
+        {{#is identifier 'howto'}}
+        HOW TO
+        {{/is}}
+        {{#is identifier 'sizmekcertified'}}
+        SIZMEK CERTIFIED
+        {{/is}}
+        {{#is identifier 'onboarding'}}
+        ONBOARDING
+        {{/is}}
+        {{#is identifier 'faq'}}
+        FAQ
+        {{/is}}
+        {{#is identifier 'tips'}}
+        TIPS & TRICKS
+        {{/is}}
+        {{#is identifier 'troubleshooting'}}
+        TROUBLESHOOTING
+        {{/is}}
+        {{#is identifier 'reference'}}
+        REFERENCE
+        {{/is}}
+        {{#is identifier 'glossary'}}
+        GLOSSARY
+        {{/is}}
+        {{#is identifier 'new'}}
+        WHATS NEW
+        {{/is}}
+        {{#is identifier 'supportkb'}}
+        SUPPORT KB
+        {{/is}}
+        {{#is identifier 'kbmdx'}}
+        MDX
+        {{/is}}
+        {{#is identifier 'kbsas'}}
+        SAS
+        {{/is}}
+        {{#is identifier 'mdx2'}}
+        MDX 2.0
+        {{/is}}
+        {{#is identifier 'mdxnxt'}}
+        SAS
+        {{/is}}
+        {{#is identifier 'hc-admin'}}
+        HC ADMIN
+        {{/is}}
+      </span>
+            {{/each}}
+            {{title}}
+      {{#each labels}}
+        {{#is identifier 'video'}}
+        &nbsp;&nbsp;<span class="{{identifier}}-title" style="text-transform:uppercase">
+        VIDEO
+            </span>
+       {{/is}}
+      {{/each}}
+        </a>
+      </li>
+    {{/each}}
+  </ul>
+{{else}}
+  <i class="section-empty">
+    <a href="{{section.url}}">{{t 'empty'}}</a>
+  </i>
+{{/if}}
+
+{{pagination}}
+
+<p></p>
+<p></p>

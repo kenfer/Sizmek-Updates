@@ -1,0 +1,29 @@
+<div class="container-divider"></div>
+
+  <nav class="sub-nav">
+  <div class="sub-nav-inner">
+    {{breadcrumbs}} {{search}}
+  </div>
+</nav>
+
+
+
+ <div class="main-inner">
+
+  <div class="clearfix">
+    <section class="main-column">
+      <h1>{{t 'submit_a_request'}}{{#if parent}}
+        <span class="follow-up-hint">
+          {{follow_up}}
+        </span>
+        {{/if}}</h1>
+
+      <div class="form">
+        {{request_form}}
+      </div>
+    </section>
+  </div>
+</div>
+
+  {{chat}}
+

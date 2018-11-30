@@ -1,0 +1,149 @@
+<p>
+<script type="text/javascript">// <![CDATA[
+/* create custom resource type
+var crJSON = {
+    "data": {
+        "key": "helpcenter_storage",
+        "schema": {
+            "properties": {
+                "menu_version": {
+                    "type": "string",
+                    "description": "Sidebar menu version number for caching"
+                }
+            },
+            "required": ["menu_version"]
+        }
+    }
+};
+var settings = {
+    type: "POST",
+    dataType: "json",
+    url: "/api/custom_resources/resource_types",
+    contentType: "application/json",
+    processData: false,
+    "data": JSON.stringify(crJSON)
+}
+
+$.ajax(settings).done(function(response) {
+    console.log(response);
+}); 
+
+// get custom resource key: helpcenter_storage
+var getcrJSON = {
+    type: "GET",
+    dataType: "json",
+    url: "/api/custom_resources/resources?type=helpcenter_storage",
+    contentType: "application/json",
+    processData: false
+}
+
+$.ajax(getcrJSON).done(function(response) {
+    console.log(response);
+});
+
+// create version number custom resource
+var verJSON = {
+    "data": {
+        "type": "helpcenter_storage",
+        "external_id": "1",
+        "attributes": {
+            "menu_version": "1"
+        }
+    }
+};
+
+var settings = {
+    type: "POST",
+    dataType: "json",
+    url: "/api/custom_resources/resources",
+    contentType: "application/json",
+    processData: false,
+    "data": JSON.stringify(verJSON)
+}
+
+$.ajax(settings).done(function(response) {
+    console.log(response);
+});
+*/
+// get resource
+var getverJSON = {
+    type: "GET",
+    dataType: "json",
+    url: "/api/custom_resources/resources/8f1e91ad-80d3-11e8-b135-55a92aefd99e",
+    contentType: "application/json",
+    processData: false
+}
+
+$.ajax(getverJSON).done(function(response) {
+    console.log("Resource: ", response);
+    $("#refreshCache").show();
+    $("#mver").text(response.data.attributes.menu_version)
+});
+
+$(document).ready(function() {
+    $("#refreshCache").click(function() {
+        var newVer = String(parseInt($("#mver").text()) + 1);
+        $("#refreshCache").attr("disabled", true);
+        // increment menu version
+        var verJSON = {
+            "data": {
+                "attributes": {
+                    "id": "1",
+                    "menu_version": newVer
+                }
+            }
+        };
+        var incverJSON = {
+            type: "PATCH",
+            dataType: "json",
+            url: "/api/custom_resources/resources/8f1e91ad-80d3-11e8-b135-55a92aefd99e",
+            contentType: "application/merge-patch+json",
+            "data": JSON.stringify(verJSON)
+        }
+        $.ajax(incverJSON).done(function(response) {
+            //update article 206321873 labels with new version
+            var targetArticle = "/api/v2/help_center/en-us/articles/206321873.json";
+
+            $.ajax(targetArticle).done(function(articledata) {
+                var labels = articledata.article.label_names;
+                console.log("Old labels: ", labels);
+                if (labels.length > 0)
+                    for (x = 0; x < labels.length; x++)
+                        if (labels[x].toLowerCase().indexOf("hcversion") > -1) {
+                            labels.splice(x, 1);
+                            console.log("Labels: ", labels);
+                        }
+                labels.push("hcversion" + newVer);
+                console.log("New labels: ", labels);
+                
+                var updateArticleJSON = {
+                    "article": {
+                        "label_names": labels
+                    }
+                };
+
+                $.ajax(targetArticle, {
+                    type: "PUT",
+                    dataType: "json",
+                    contentType: "application/json",
+                    processData: false,
+                    data: JSON.stringify(updateArticleJSON),
+                    success: function(data) {
+                        $("#refreshCache").attr("disabled", false);
+                        $("#mver").text(response.data.attributes.menu_version);
+                    }
+                });
+
+            });
+        });
+    });
+});
+// ]]></script>
+</p>
+<p>Refreshing cache version will result in clearing of all users' local cache which means they will load fresh list of categories, sections and articles for sidebar menu. These are cached to speed up the browsing experience and so it is best to only update the cache version if there was any change to the categories or sections.</p>
+<h3>Current cache version: <span id="mver" style="color: #00244d;">Loading...</span></h3>
+<p><input id="refreshCache" class="btn btn-primary btn-lg" type="button" value="Refresh Cache" /></p>
+<p> </p>
+<p> </p>
+<p> </p>
+<p> </p>

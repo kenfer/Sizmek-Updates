@@ -1,0 +1,41 @@
+{
+  "name": "UFFA Suggestions",
+  "author": {
+    "name": "Jessica Yang",
+    "email": "jessica.yang@sizmek.com",
+    "url": "https://sizmek.zendesk.com"
+  },
+  "parameters": [
+    {
+      "name": "nb_entries",
+      "type": "number"
+    },
+    {
+      "name": "custom_host",
+      "type": "url"
+    },
+    {
+      "name": "include_title",
+      "type": "checkbox",
+      "default": "1"
+    },
+    {
+      "name": "search_hc",
+      "type": "checkbox"
+    },
+    {
+      "name": "exclude_agent_only",
+      "type": "checkbox"
+    }
+  ],
+  "defaultLocale": "en",
+  "private": true,
+  "location": {
+    "support": {
+      "ticket_sidebar": "assets/iframe.html",
+      "new_ticket_sidebar": "assets/iframe.html"
+    }
+  },
+  "frameworkVersion": "2.0",
+  "version": "1.0"
+}

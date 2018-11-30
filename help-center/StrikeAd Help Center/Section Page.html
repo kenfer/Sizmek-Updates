@@ -1,0 +1,39 @@
+<nav class="sub-nav">
+  <div class="sub-nav-inner">
+    {{breadcrumbs}} {{search}}
+<header class="page-header">
+  <h1>{{#if section.internal}}
+    <span class="visibility-internal" data-title="{{t 'internal'}}">
+      <span class="visibility-internal-icon"></span>
+    </span>
+  {{/if}} {{section.name}}</h1>
+</header>
+  </div>
+</nav>
+<p class="section-description">{{section.description}}</p>
+<div class="subscriptionContainer">
+<span>{{subscribe}}</span>
+</div>
+<div class="noContent">You are currently filtering content for the <span class="currPlat"> </span> platform, but there is
+no <span class="currPlat"> </span> content available in this section. If you are looking for information about the <span class="currPlat"> </span> platform, click <a href="https://support.sizmek.com/hc/en-us" target="_self"><span class="currPlat"> </span> home page</a>. Otherwise, switch to the <a href="#" id="switchPlatform"><span class="altPlat"> </span> platform</a>.</div>
+{{#if section.articles}}
+  <ul class="article-list">
+    {{#each section.articles}}
+      <li {{#if promoted}} class="article-promoted" {{/if}}>
+        {{#if promoted}}
+          <span data-title="{{t 'promoted'}}">★</span>
+        {{/if}}
+        <a href="{{url}}">{{title}}</a>
+      </li>
+    {{/each}}
+  </ul>
+{{else}}
+  <i class="section-empty">
+    <a href="{{section.url}}">{{t 'empty'}}</a>
+  </i>
+{{/if}}
+
+{{pagination}}
+
+<p></p>
+<p></p>

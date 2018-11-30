@@ -1,0 +1,277 @@
+<nav class="sub-nav">
+  <div class="sub-nav-inner">
+    {{breadcrumbs}} {{search}}
+  </div>
+</nav>
+<div class="main-inner">
+
+  <div class="clearfix">
+    <section class="main-column">
+      <h1>{{t 'submit_a_request'}}{{#if parent}}
+        <span class="follow-up-hint">
+          {{follow_up}}
+        </span>
+        {{/if}}</h1>
+
+      <div class="form">
+        {{request_form}}
+      </div>
+    </section>
+  </div>
+
+  {{chat}}
+  <script>
+        window.stopInbenta = true;
+
+var advertiserSettings = {"requests": "request_custom_fields_advertiser", "nameLocal": "advertiser", "label": "Advertiser", "textfield": "input#request_custom_fields_21606429"};
+var campaignSettings = {"requests": "request_custom_fields_campaign", "nameLocal": "campaign", "label": "Campaign", "textfield": "input#request_custom_fields_21606439"};
+var siteSettings = {"requests": "request_custom_fields_sites", "nameLocal": "sites", "label": "Sites", "textfield": "input#request_custom_fields_21606469"};
+var skipSigned = '';
+//hide account
+$('.request_custom_fields_21606429').hide();
+//hide campaign
+$('.request_custom_fields_21606439').hide();
+//hide site
+$('.request_custom_fields_21606469').hide();
+//hide product category
+//$('.request_custom_fields_21653615').hide();
+  
+function getObjects(obj, key, val) {
+    var objects = [];
+    for (var i in obj) {
+        if (!obj.hasOwnProperty(i)) continue;
+        if (typeof obj[i] == 'object') {
+            objects = objects.concat(getObjects(obj[i], key, val));
+        } else if (i == key && obj[key] == val) {
+            objects.push(obj);
+        }
+    }
+    return objects;
+}
+
+function S4() {
+    return (((1+Math.random())*0x10000)|0).toString(16).substring(1);
+}
+function makeJWT(){
+  var hs256 = '{"typ":"JWT","alg":"HS256"}';
+  var timestamp = Math.round(Date.now()/1000);
+  var payload = {};
+  var guid = (S4() + S4() + S4() + "4" + S4().substr(0,3) + S4() + S4() + S4() + S4()).toLowerCase();
+  payload.validto = timestamp.toString();
+  payload.jti = guid;
+  payload = JSON.stringify(payload);
+  var skipToken = new jwt.WebToken(payload, hs256);
+  skipSigned = skipToken.serialize('9z23SIsXxoZWyQTDrAflmuoTRm57S1QzQC6W1DKiPwH77AWq');  
+}
+makeJWT();
+var desc ='request_organization_id';
+
+function makeDropdown(settings, att){
+  $('.' + settings.requests).remove();
+  var createRoot = document.createElement('div');
+    var createLabel = document.createElement('label');
+    var createInput = document.createElement('select');
+    var nullOptions = document.createElement("option");
+    nullOptions.value = '';
+    nullOptions.text = '-';
+    createLabel.setAttribute("for", settings.requests);
+    createLabel.textContent = settings.label;
+    createInput.setAttribute('id', settings.requests);
+    createInput.setAttribute('type', 'hidden');
+    createInput.setAttribute('size', '0');
+    createInput.setAttribute('autocomplete', 'off');
+    createInput.setAttribute('name', settings.nameLocal);
+    createInput.add(nullOptions)
+    createRoot.className = 'form-field select optional ' + settings.requests;
+    createInput.className = 'nesty-input';
+    createRoot.appendChild(createLabel);
+    createRoot.appendChild(createInput);
+    $('.' + att).after(createRoot);
+}
+
+
+function makeADdropdown(settings, data, att){
+  $('.' + settings.requests).remove();
+    var createRoot = document.createElement('div');
+    var createLabel = document.createElement('label');
+    var createInput = document.createElement('select');
+    var nullOptions = document.createElement("option");
+    nullOptions.value = '';
+    nullOptions.text = '-';
+    createLabel.setAttribute("for", settings.requests);
+    createLabel.textContent = settings.label;
+    createInput.setAttribute('id', settings.requests);
+    createInput.setAttribute('type', 'hidden');
+    createInput.setAttribute('size', '0');
+    createInput.setAttribute('autocomplete', 'off');
+    createInput.setAttribute('name', settings.nameLocal);
+    createInput.add(nullOptions)
+    // var createInput = document.getElementById(settings.requests);
+    data.Rows.forEach(function(d){
+      var option = document.createElement("option");
+      option.value = d.AdvertiserID;
+      option.text = d.AdvertiserName;
+      createInput.add(option)
+    });
+    createInput.className = 'nesty-input';
+    createRoot.className = 'form-field select optional ' + settings.requests;
+    createRoot.appendChild(createLabel);
+    createRoot.appendChild(createInput);
+    $('.' + att).after(createRoot);
+    $('.' + settings.requests).change(function(e){
+      //console.log('make drop fired', $(''+settings.textfield + ''));
+      makeJWT();
+      $(settings.textfield).attr('value', $('#' + settings.requests +' option:selected').text());
+      $(''+ campaignSettings.textfield +'').attr('value', '-');
+      makeDropdown(siteSettings,campaignSettings.requests);
+      $(''+ siteSettings.textfield +'').attr('value', '-');
+      var buildCampURL = '&type=advertiser&typeid='+ $('#' + settings.requests +' option:selected').val() +'&jwt=' + skipSigned
+      var encodedURL = encodeURIComponent(buildCampURL);
+      $.ajax({
+          type: 'GET',
+          dataType: 'JSON',
+          url: '/proxy/direct?url=https://platform.mediamind.com/Eyeblaster.ACM.Web/API/ExternalServices/Zendesk.ashx?' + encodedURL,
+          success: function(data){
+            //console.log(data);
+            makeCampdropdown(campaignSettings, data, advertiserSettings.requests);
+          }
+        });
+
+  });
+}
+
+function makeCampdropdown(settings, data, att){
+  $('.' + settings.requests).remove();
+    var createRoot = document.createElement('div');
+    var createLabel = document.createElement('label');
+    var createInput = document.createElement('select');
+    var nullOptions = document.createElement("option");
+    nullOptions.value = '';
+    nullOptions.text = '-';
+    createLabel.setAttribute("for", settings.requests);
+    createLabel.textContent = settings.label;
+    createInput.setAttribute('id', settings.requests);
+    createInput.setAttribute('type', 'hidden');
+    createInput.setAttribute('size', '0');
+    createInput.setAttribute('autocomplete', 'off');
+    createInput.setAttribute('name', settings.nameLocal);
+    createInput.add(nullOptions)
+    data.Rows.forEach(function(d){
+      var option = document.createElement("option");
+      option.value = d.CampaignID;
+      option.text = d.Name;
+      createInput.add(option)
+    });
+    createRoot.className = 'form-field select optional ' + settings.requests;
+    createInput.className = 'nesty-input';
+    createRoot.appendChild(createLabel);
+    createRoot.appendChild(createInput);
+    $('.' + att).after(createRoot);
+    createInput.className = 'nesty-input';
+    $('.' + settings.requests).change(function(e){
+      //console.log('make drop fired', $(''+settings.textfield + ''));
+      $(''+ siteSettings.textfield +'').attr('value', '-');
+      makeJWT();
+      $(settings.textfield).attr('value', $('#' + settings.requests +' option:selected').text());
+      //changed 29sept14
+      var buildCampURL = '&type=campaign&typeid='+ $('#' + settings.requests +' option:selected').val() +'&jwt=' + skipSigned
+      var encodedURL = encodeURIComponent(buildCampURL);
+      $.ajax({
+          type: 'GET',
+          dataType: 'JSON',
+          url: '/proxy/direct?url=https://platform.mediamind.com/Eyeblaster.ACM.Web/API/ExternalServices/Zendesk.ashx?' + encodedURL,
+          success: function(data){
+            //console.log(data);
+            makeSitedropdown(siteSettings, data, campaignSettings.requests);
+          }
+        });
+
+  });
+}
+
+function makeSitedropdown(settings, data, att){
+  $('.' + settings.requests).remove();
+    var createRoot = document.createElement('div');
+    var createLabel = document.createElement('label');
+    var createInput = document.createElement('select');
+    var nullOptions = document.createElement("option");
+    nullOptions.value = '';
+    nullOptions.text = '-';
+    createLabel.setAttribute("for", settings.requests);
+    createLabel.textContent = settings.label;
+    createInput.setAttribute('id', settings.requests);
+    createInput.setAttribute('type', 'hidden');
+    createInput.setAttribute('size', '0');
+    createInput.setAttribute('autocomplete', 'off');
+    createInput.setAttribute('name', settings.nameLocal);
+    createInput.add(nullOptions)
+    data.Rows.forEach(function(d){
+      var option = document.createElement("option");
+      option.value = d.SiteID;
+      option.text = d.Name;
+      createInput.add(option)
+    });
+    createInput.className = 'nesty-input';
+    createRoot.className = 'form-field select optional ' + settings.requests;
+    createInput.className = 'nesty-input';
+    createRoot.appendChild(createLabel);
+    createRoot.appendChild(createInput);
+    $('.' + att).after(createRoot);
+    $('.' + settings.requests).change(function(e){
+      //console.log('make drop fired', $(''+settings.textfield + ''));      
+      $(settings.textfield).attr('value', $('#' + settings.requests +' option:selected').text());
+  });
+}
+var accountID = '';
+function isCustomer(element, index, array){
+  var re = /orgid_\d+$/;
+  if(re.test(element)){ 
+    var accNum = element.split('_');
+    accountID = accNum[1];
+   }
+}
+function parseOrg(element, index, array){
+  return element.tags.forEach(isCustomer);
+}
+function pullAdvertiser() {
+  //console.log('in the pullAdvertiser');
+  var currentOrg = '';
+  if (HelpCenter.user.organizations.length === 1 ){
+    currentOrg = getObjects(HelpCenter.user.organizations, 'name', HelpCenter.user.organizations[0].name);
+    desc = 'request_subject';
+  } else {
+  currentOrg = getObjects(HelpCenter.user.organizations, 'name', $('#request_organization_id :selected').text());
+  }
+  currentOrg.forEach(parseOrg);
+  //console.log('accountID', accountID);
+  var buildURL = '&type=account&typeid='+ accountID +'&jwt=' + skipSigned
+  var encodedURL = encodeURIComponent(buildURL);
+  $.ajax({
+      type: 'GET',
+      dataType: 'JSON',
+      url: '/proxy/direct?url=https://platform.mediamind.com/Eyeblaster.ACM.Web/API/ExternalServices/Zendesk.ashx?' + encodedURL,
+      success: function(data){
+        //console.log(data);
+        makeADdropdown(advertiserSettings, data, desc);
+      }
+    });
+}
+
+$(document).ready(function(){
+   if (HelpCenter.user.organizations.length === 1 ){
+    makeDropdown(advertiserSettings, 'request_subject');
+   } else {
+    makeDropdown(advertiserSettings, desc); 
+   }
+  makeDropdown(campaignSettings, advertiserSettings.requests);
+  makeDropdown(siteSettings,campaignSettings.requests);
+  pullAdvertiser();
+  $('#request_organization_id').change(function(){
+    pullAdvertiser();
+    makeDropdown(advertiserSettings, desc);
+    makeDropdown(campaignSettings, advertiserSettings.requests);
+    makeDropdown(siteSettings,campaignSettings.requests);
+  });
+});
+</script>
+</div>
