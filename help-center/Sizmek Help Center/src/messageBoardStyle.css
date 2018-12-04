@@ -1898,81 +1898,65 @@ body.dragging, body.dragging * {
      background-color: #3498DB;
      color: white;
  }
+/* add internal incidents */
 
- .addexternal {
+ .addinternal{ 
+    padding: 5px 25px; 
+    left: 435px;
+    top: -12px;
+	overflow:hidden;
+}
+.addinternal:before {
+	font-family: FontAwesome;
+	content:"\f055";
+	position: absolute;
+	
+	left: -30px;
+	transition: all 200ms ease;
+}
+.addinternal:hover:before {
+	left: 7px;
+}
+
+
+
+/* add external incidents */
+.addexternal{ 
+    padding: 5px 25px; 
+    left: 580px;
+    top: 30px;
+	overflow:hidden;
+}
+.addexternal:before {
+	font-family: FontAwesome;
+	content:"\f055";
+	position: absolute;
+	
+	left: -30px;
+	transition: all 200ms ease;
+}
+.addexternal:hover:before {
+	left: 7px;
+}
+
+.externalClosebtn{
+    left: 750px;
+    top: -400px;
+    background-color:gray;
+    color: white;
+    font-family: FontAwesome;
+	content:"\f055";
+
+}
+
+.externalClosebtn::before{
+    content:"\f00d";
+}
+
+.externalClosebtn:hover {
+    background-color: red;
  
-    font-family: sans-serif;
-    text-decoration: none;
-    border-radius: 100px;
-    border: 1px solid #5846ff;
-    height: 60px;
-    width: 60px;
-    transition: all cubic-bezier(0.31, -0.105, 0.43, 1.4) 0.2s;
-    background-color: #6252f9;
-  }
-  .addexternal:hover {
-    width: 235px;
-  }
-  .addexternale:hover .btn-stage:first-child {
-    opacity: 0;
-  }
-  .addexternal:hover .btn-stage:nth-child(n+2) {
-    opacity: 1;
-    transition: opacity linear calc(0.2s + 0.05s);
-  }
-  
-  .btn-stage {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    color: #fff;
-    font-size: 20px;
-    transition: opacity linear calc(0.2s - 0.05s);
-  }
-  .btn-stage:nth-child(n+2) {
-    opacity: 0;
-    white-space: nowrap;
-    font-size: 13px;
-  }
-  
-/* add internal */
 
 
+}
 
-.addinternal {
- 
-    font-family: sans-serif;
-    text-decoration: none;
-    border-radius: 100px;
-    border: 1px solid #5846ff;
-    height: 60px;
-    width: 60px;
-    transition: all cubic-bezier(0.31, -0.105, 0.43, 1.4) 0.2s;
-    background-color: #6252f9;
-  }
-  .addinternal:hover {
-    width: 235px;
-  }
-  .addinternale:hover .btn-stage:first-child {
-    opacity: 0;
-  }
-  .addinternal:hover .btn-stage:nth-child(n+2) {
-    opacity: 1;
-    transition: opacity linear calc(0.2s + 0.05s);
-  }
-  
-  .btn-stage {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    color: #fff;
-    font-size: 20px;
-    transition: opacity linear calc(0.2s - 0.05s);
-  }
-  .btn-stage:nth-child(n+2) {
-    opacity: 0;
-    white-space: nowrap;
-    font-size: 13px;
-  }

@@ -860,7 +860,7 @@ $(document).ready(function() {
                 } else {
                     $('#switch-internal').hide()
 
-                    $('#update-internal-message').append('<button class="addinternal"><span class="btn-stage">+</span> <span class="btn-stage">Add New Internal Message</span> </button>')
+                    $('#update-internal-message').append('<button class="addinternal"><span class="btn-stage">Add New Internal Message</span> </button>')
 
 
                     $("#update-internal-message #send-comment-notif,#update-internal-message  .subscribe-global-notif").prop('checked', false);
@@ -890,14 +890,17 @@ $(document).ready(function() {
                     $("#update-external-message > div").fadeIn();
                 } else {
                     $('#switch-external').hide()
-                    $('#update-external-message').append('<button class="addexternal"><span class="btn-stage">+</span> <span class="btn-stage">Add New External Message</span> </button>')
+                    $('#update-external-message').prepend('<button class="addexternal"><span class="btn-stage">Add New External Message</span> </button>')
                     $("#update-external-message #send-comment-notif,#update-external-message  .subscribe-global-notif").prop('checked', false);
 
                     $("#update-external-message > div").fadeOut();
                 }
-
-                $('.addexternal').on("click", function() {
+                $('.message-external').prepend('<button class="externalClosebtn"><span> Close</span></button>')
+                  $('.externalClosebtn').hide()
+             $('.addexternal').on("click", function() {
                     alert("hello")
+                    $('.externalClosebtn').show()
+                    $("#update-external-message > div").fadeIn();
                     var externalMessage = document.getElementById("external-message-switch");
                     externalMessage.disabled = false
                     externalMessage.checked = true
@@ -911,29 +914,30 @@ $(document).ready(function() {
                         }
                     }
                     component +='</div>'
-                    console.log(component);
-             
-                    $('#update-external-message').prepend(component);
-
-
+                        $('#update-external-message').prepend(component);
                     $('#update-external-message').prepend('<div class="modal-body2"> <div class="modal-body-detail components-affected"> <label>Components Affected</label> <div class="component-container"> </div></div>')
-                    $('.modal-body2').prepend('<h1 style="font-size: 20px;font-weight: 400;">Messaging</h1><br><div class="modal-body-detail incident-name"> <label>Title</label> <br><input type="text" id="incident-name-external" name="" placeholder="Incident Title"><span class="info"></span> </div>')
-             
-                    $("#update-external-message #send-comment-notif,#update-external-message  .subscribe-global-notif").prop('checked', true);
-
-                    $("#update-external-message > div").fadeIn();
-
-                    $(".addexternal").remove()
+                        $('.modal-body2').prepend('<h1 style="font-size: 20px;font-weight: 400;">Messaging</h1><br><div class="modal-body-detail incident-name"> <label>Title</label> <br><input type="text" id="incident-name-external" name="" placeholder="Incident Title"><span class="info"></span> </div>')
+                      $("#update-external-message #send-comment-notif,#update-external-message.subscribe-global-notif").prop('checked', true);
+    
+                       $(".addexternal").hide()
                     $('#switch-external').show()
 
+                         })
+                          $('.externalClosebtn').on("click", function() {
+                            $("#update-external-message > div").fadeOut();
+                            $('#switch-external').hide()
+                            $('.externalClosebtn').remove()
+                            $(".addexternal").show()
+                             $("#update-external-message #send-comment-notif,#update-external-message.subscribe-global-notif").prop('checked', false);
+                             $('.externalClosebtn').hide()
+                             $('.affected-component').remove()
+                             $('.component-container').remove()
+                             $('.modal-body2').remove()
+                       
+                            })
+                       }
 
-
-                })
-
-
-            }
-
-              $('#goto-messageBoard-admin').on("click", function() {
+               $('#goto-messageBoard-admin').on("click", function() {
                 $('#back-incident-list').click();
                 $('.message-board-container').css('left', '20%');
                 $('html').css('overflow', 'hidden');
@@ -1412,9 +1416,6 @@ $(document).ready(function() {
                     });
                     incidentID != currentInternalIncidentID && (updateIncident(incidentID, $(this).find('#incident-title').text(), false), num_Incidents++);
                 }
-
-                    
-
 
                 function updateIncident(incident, incidentTitle, isInternal) {
                     var severity = $('#update-incident-modal:visible .incident-severity select').val();
