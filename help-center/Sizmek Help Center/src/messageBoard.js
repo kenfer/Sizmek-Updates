@@ -568,7 +568,7 @@ $(document).ready(function() {
                 params['incidentStatus'] = thismodal.find('.incident-status input[type="radio"]:checked').val();
                 params['incidentSeverity'] = thismodal.find('.incident-severity select').val();
                 params['globalnotif'] = true;
-                console.log(params.incidentName)
+            
                 if (params.incidentName == "" || params.incidentStatus == undefined || thismodal.find('.components-affected input[type="checkbox"]:checked').val() == undefined) {
                     $(this).removeAttr('disabled');
                     alert("Please fill up all the fields.");
@@ -678,6 +678,7 @@ $(document).ready(function() {
                     }
                 })
                 refresh = true;
+            
             }
             //==========================================================CREATE NEW SCHEDULED MAINTENANCE==================
             $("#create-new-scheduled-maintenance").click(function() {
@@ -867,8 +868,11 @@ $(document).ready(function() {
                     $("#update-internal-message > div").fadeOut();
                 }
 
+
+                $('#update-internal-message').append('<button class="internalClosebtn"><span> Close</span></button>')
+                $('.internalClosebtn').hide()
                 $('.addinternal').on("click", function() {
-               
+               $('.internalClosebtn').show()
                     alert("hello")
                     var internalMessage = document.getElementById("internal-message-switch");
                       internalMessage.disabled = false
@@ -877,9 +881,21 @@ $(document).ready(function() {
                     $("#update-internal-message #send-comment-notif,#update-internal-message  .subscribe-global-notif").prop('checked', true);
 
                     $("#update-internal-message > div").fadeIn();
-                    $(".addinternal").remove()
+                    $(".addinternal").hide()
                     $('#switch-internal').show()
                 })
+                $('.internalClosebtn').on("click", function() {
+                    $("#update-internal-message > div").fadeOut();
+                    $('#switch-internal').hide()
+                    $('.internalClosebtn').remove()
+                    $('.addinternal').show()
+                     $("#update-internal-message #send-comment-notif,#update-internal-message.subscribe-global-notif").prop('checked', false);
+                     $('.internalClosebtn').hide()
+                    //  $('.affected-component').remove()
+                    //  $('.component-container').remove()
+                    //  $('.modal-body2').remove()
+               
+                    })
 
             }
 

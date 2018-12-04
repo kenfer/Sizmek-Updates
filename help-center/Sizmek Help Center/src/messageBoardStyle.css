@@ -1939,11 +1939,12 @@ body.dragging, body.dragging * {
 	left: 7px;
 }
 
+/* external close btn */
+
 .externalClosebtn{
     left: 750px;
     top: -400px;
-    background-color:gray;
-    color: white;
+    color: gray;
     font-family: FontAwesome;
 	content:"\f055";
 
@@ -1954,9 +1955,31 @@ body.dragging, body.dragging * {
 }
 
 .externalClosebtn:hover {
-    background-color: red;
+    background-color: white;
  
 
 
 }
+/* internal close btn */
+
+.internalClosebtn{
+    left: 750px;
+    top: -570px;
+    color: gray;
+    font-family: FontAwesome;
+	content:"\f055";
+
+}
+
+.internalClosebtn::before{
+    content:"\f00d";
+}
+
+.internalClosebtn:hover {
+    background-color: white;
+ 
+
+
+}
+
 
