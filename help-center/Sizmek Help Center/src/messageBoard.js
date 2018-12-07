@@ -608,19 +608,19 @@ $(document).ready(function() {
             })
 
             function createIncident(sect_id, params, final) {
-                if (params.globalnotif != "undefined" && params.globalnotif == true) {
-                    $.ajax({
-                        url: '/api/v2/help_center/sections/' + sect_id + '/subscriptions.json',
-                        type: 'POST',
-                        data: {
-                            "subscription": {
-                                "source_locale": "en-us",
-                                "include_comments": true,
-                                "user_id": globalnotif_user_id
-                            }
-                        }
-                    })
-                };
+                // if (params.globalnotif != "undefined" && params.globalnotif == true) {
+                //     $.ajax({
+                //         url: '/api/v2/help_center/sections/' + sect_id + '/subscriptions.json',
+                //         type: 'POST',
+                //         data: {
+                //             "subscription": {
+                //                 "source_locale": "en-us",
+                //                 "include_comments": true,
+                //                 "user_id": globalnotif_user_id
+                //             }
+                //         }
+                //     })
+                // };
                 var obj = {},
                     article = {},
                     label_names = {};
@@ -637,7 +637,7 @@ $(document).ready(function() {
                 article.author_id = globalsupport_user_id;
                 obj.article = article;
                 obj.article.label_names = labels;
-                obj.notify_subscribers = params.notifications;
+                obj.notify_subscribers = false;
 
                 function postData() {
                     return $.ajax({
@@ -651,6 +651,7 @@ $(document).ready(function() {
                     incidentIDs.push(data.article.id);
                     var promisesToPost = [];
                     if (final) {
+                        console.log(incidentIDs)
                         for (var i = 0; i < incidentIDs.length; i++) {
                             (function(y) {
                                 var relatedIncidents = incidentIDs.filter(function(id) {
@@ -761,7 +762,7 @@ $(document).ready(function() {
                 article.body = "<strong>" + maintenanceStart + "</strong><br><strong>" + maintenanceEnd + "</strong><br><br>" + params.maintenanceDetails;
                 article.author_id = globalsupport_user_id;
                 obj.article = article;
-                obj.notify_subscribers = params.notifications;
+                obj.notify_subscribers = false;
                 obj.article.label_names = labels;
                 var obj_string = JSON.stringify(obj);
                 setTimeout(function() {
@@ -873,7 +874,6 @@ $(document).ready(function() {
                 $('.internalClosebtn').hide()
                 $('.addinternal').on("click", function() {
                $('.internalClosebtn').show()
-                    alert("hello")
                     var internalMessage = document.getElementById("internal-message-switch");
                       internalMessage.disabled = false
                     internalMessage.checked = true
@@ -914,7 +914,6 @@ $(document).ready(function() {
                 $('.message-external').prepend('<button class="externalClosebtn"><span> Close</span></button>')
                   $('.externalClosebtn').hide()
              $('.addexternal').on("click", function() {
-                    alert("hello")
                     $('.externalClosebtn').show()
                     $("#update-external-message > div").fadeIn();
                     var externalMessage = document.getElementById("external-message-switch");
@@ -1401,27 +1400,35 @@ $(document).ready(function() {
                 var modal = $('.modal-body');
                 var incidentID = $(this).find("span.hide").text();
                 var thismodal = $(this).closest('.modal');
-                var params = [];
+                var param = [];
+                var myString = currentInternalIncidentTitle;
+                var myString2 = myString.substr("]");
+               var myString3 = myString2.substr(myString.indexOf(']')+1);
+
+                param['incidentName'] =myString3 ;
+                param['incidentStatus'] = thismodal.find('.status-choices input[type="radio"]:checked').val()
                 var componentsCunt  = thismodal.find('.component-container input[type="checkbox"]:checked').length;
-                params['platformname'] = thismodal.find('#incident-name-external').val();
-
-                        var intIncidentNameExternal = ''
-
+                 param['platformname'] = myString3;
+                        var intIncidentNameExternal = myString3
                     thismodal.find('.component-container input[type="checkbox"]:checked').siblings("span").each(function(){
-                        intIncidentNameExternal =   intIncidentNameExternal + "[" + $(this).text().trim() + "]" +"\n";
+                        
                           })
-                    //    intIncidentNameExternal = intIncidentNameExternal + '' +thismodal.find('#incident-name-external').val();  
-                       
-                            console.log(intIncidentNameExternal)
-                                var loops = 1;
+                              param['incidentName'] = intIncidentNameExternal;
+                              param['message'] = $("#update-incident-body-external").val();
+                              console.log(param.incidentName)
+                              incidentIDs.push(parseInt(incidentID));
+                                
+                            
+                              var loops = 0;
                                 thismodal.find('.component-container input[type="checkbox"]:checked').each(function() {
                                 
+                                    console.log($(this))
                                     loops++,
-                                    console.log($(this),params.platformname);
-                                    (loops === componentsCunt && !$("#iInternal .gswitch input").prop('checked'));
+                                    createIncident($(this).val(),param,
+                                    (loops === componentsCunt && !$("#iExternal .gswitch input").prop('checked')));
                                     
                                 })
-                              if ($("#internal-message-switch").is(':checked')) {
+     if ($("#internal-message-switch").is(':checked')) {
                     updateIncident(currentInternalIncidentID, currentInternalIncidentTitle, true);
                     num_Incidents++;
                 }
