@@ -1,86 +1,21 @@
 // Author: Sizmek Global Support Intern - Kyrl Limitares & Yves Denzel
-// Ver 1.12
+// Ver 1.15
 $(document).ready(function() {
     var currentUser = HelpCenter.user.role;
     var localStorage = window.localStorage;
     var platforms = JSON.parse(localStorage.getItem("platforms"));
     var platform_url = window.location.href.split("/");
     var platform_id = platform_url[platform_url.length - 1].split("-", 1).toString();
-    var currentLocation = window.location.href;
-    if (currentLocation.indexOf("/articles") > -1) {
-        currentLocation = currentLocation.replace("https://support.sizmek.com/hc/en-us/articles/", "");
-        view_incident2(parseInt(currentLocation));
-    }
-    //START
-    //This function is use to show the related incidents in article page.
-    function view_incident2(incident_id) {
-        var htmlElementView2 = "",
-            relatedIncidentArray = [];
-        $.get('/api/v2/help_center/articles/' + incident_id + '.json', function(incident) {
-            var label = incident.article.label_names;
-            for (var x = 0; x < label.length; x++) {
-                if (label[x].includes("Type:")) {
-                    var type = label[x].replace("Type:", "");
-                } else if (label[x].includes("Status:")) {
-                    var in_status = label[x].replace("Status:", "");
-                } else if (label[x].includes("Severity:")) {
-                    var in_severity = label[x].replace("Severity:", "");
-                } else if (label[x].includes("RelatedIncidents:")) {
-                    var relatedIncidentsTag = label[x].replace(/RelatedIncidents:/g, "");
-                    var related_incidents = relatedIncidentsTag.split(" ");
-                }
-            }
-            if (related_incidents !== undefined && related_incidents.length > 0 && related_incidents[0] !== "") {
-                htmlElementView2 += '<div id="related-incidents-container" class="related-article-view"><label id="related-incidents-label">Related Incidents:</label>';
-                for (var index = 0; index < related_incidents.length; index++) {
-                    (function(x) {
-                        $.get('/api/v2/help_center/articles/' + related_incidents[x] + '.json').done(function(data) {
-                            relatedIncidentArray.push(data.article);
-                            if (x + 1 === related_incidents.length) {
-                                (function() {
-                                    if (related_incidents.length === relatedIncidentArray.length) {
-                                        instantiateStringifiedDOM2();
-                                    } else {
-                                        setTimeout(arguments.callee, 100);
-                                    }
-                                })()
-                            }
-                        });
-                    })(index);
-                }
 
-                function instantiateStringifiedDOM2() {
-                    relatedIncidentArray.forEach(function(data) {
-                        if (data.section_id === 360000037612) {
-                            section = "MDX 2.0";
-                        } else if (data.section_id === 202580163) {
-                            section = "Sizmek Advertising Suite";
-                        } else if (data.section_id === 360000037572) {
-                            section = "DSP";
-                        } else if (data.section_id === 360000041291) {
-                            section = "DMP";
-                        } else if (data.section_id === 360002990152) {
-                            section = "Internal";
-                        }
-                        htmlElementView2 += '<div class="incident-item-action" id="related-incident"><a class="incident-item-view" href="/hc/en-us/articles/' + related_incidents[x] + '">' + section + '</a><span>' + related_incidents[x] + '</span></div>';
-                    })
-                    if (jQuery.inArray("view_support_content", HelpCenter.user.tags) > -1 && type != undefined) { //user_apac
-                        htmlElementView2 += '</div>';
-                        $(".main-column .incident-list-cont").append(htmlElementView2);
-                    }
-                }
-            }
-        });
-    }
-    //END
-    if (window.location.href.indexOf("categories/201680143") > -1 || jQuery.inArray(platform_id, platforms) !== -1) {
+
+    if (window.location.href.indexOf("categories/" + messageBoardCategory) > -1 || jQuery.inArray(platform_id, platforms) !== -1) {
         $('.section-tree').html("");
-        var message_board_loc = 201680143,
+        var message_board_loc = messageBoardCategory,
             template_loc = 201822986,
-            sas = 202580163,
-            sas_internal = 360002990152,
-            globalnotif_user_id = 1627768706,
-            globalsupport_user_id = 357520165,
+            sas = messageBoardSAS,
+            internalSectionID = messageBoardInternal, //from document head
+            globalnotif_user_id = globalNotification_ID,
+            globalsupport_user_id = globalSupport_ID,
             status_colors = ["#7EDE96", "#3498DB", "#FFD24D", "#DC7633", "#E74C3C"],
             platform_status = ["Operational", "Under Maintenance", "Degraded Performance", "Partial Outage", "Major Outage"],
             status_translations = ["All Systems Operational", "Service Under Maintenance", "Partially Degraded Service", "Minor Service Outage", "Major Service Outage"],
@@ -89,42 +24,86 @@ $(document).ready(function() {
             platform_urls = [],
             incidentIDs = [],
             section = '',
-            arrayChecker = 0,
-            currentIncidents = [],
             currentInternalIncidentID = 0,
             currentInternalIncidentTitle = '',
             viewedIncidentTitle = '';
-        sasIncidents = [],
-            mdxIncidents = [],
-            dspIncidents = [],
-            dmpIncidents = [],
-            siteOptimization = [],
-            internalIncidents = [],
-            allPlatforms=[];
+            sasNumPage = 0,
+            mdxNumPage = 0,
+            dspNumPage = 0,
+            dmpNumPage = 0,
+            siteOpNumPage = 0,
+            internalNumPage = 0,
+            allPlatforms = [],
+            postRequests = [],
+            userSegments = [];
+
         if (localStorage.getItem("category")) {} else {
             localStorage.setItem("category", message_board_loc);
         }
-        /////////////Status //////////////////////////////////////////
+
         if (window.location.href.indexOf("categories/" + message_board_loc) > -1) {
-            $('.sub-nav').after('<img class="component-loader" src="/hc/theme_assets/539845/200023575/spingrey.gif" style="margin-top:85px"/><div class="main-components-container" style="width:1000px"></div>')
+            $('.sub-nav').after('<img class="component-loader" src="'+ gSZMKspingreyGIFURL +'" style="margin-top:85px"/><div class="main-components-container" style="width:1000px"></div>')
         }
+
         $('.dropdown-toggle').removeAttr('href');
-        history.pushState(null, null, '/hc/en-us/categories/201680143');
+        history.pushState(null, null, '/hc/en-us/categories/' + messageBoardCategory);
         window.addEventListener('popstate', function(event) {
-            if (window.location.href.indexOf('201680143') > 0) {
-                window.location.assign("https://support.sizmek.com/hc/en-us/categories/201680143-Message-Board");
+            if (window.location.href.indexOf(messageBoardCategory) > 0) {
+                window.location.assign("/hc/en-us/categories/" + messageBoardCategory);
             }
         });
 
+        //return string span HTML element with style
         function getIncidentLabel(incidentStatus) {
-            return incidentStatus === "RESOLVED" ? '<span class="label label-success" id="category-page-label">' + incidentStatus + '</span>' : (incidentStatus === "COMPLETED") ? '<span class="label label-success" id="category-page-label">' + incidentStatus + '</span>' : incidentStatus === 'INVESTIGATING' ? '<span class="label label-warning" id="category-page-label">' + incidentStatus + '</span>' : incidentStatus === 'IDENTIFIED' ? '<span class="label label-inverse" id="category-page-label">' + incidentStatus + '</span>' : incidentStatus === 'MONITORING' ? '<span class="label label-info" id="category-page-label">' + incidentStatus + '</span>' : incidentStatus === 'NEW' ? '<span class="label" id="category-page-label">' + incidentStatus + '</span>' : '';
+            return incidentStatus === "RESOLVED" ? '<span class="label label-success" id="category-page-label">' + incidentStatus + '</span>' : incidentStatus === "COMPLETED" ? '<span class="label label-success" id="category-page-label">' + incidentStatus + '</span>' : incidentStatus === 'INVESTIGATING' ? '<span class="label label-warning" id="category-page-label">' + incidentStatus + '</span>' : incidentStatus === 'IDENTIFIED' ? '<span class="label label-inverse" id="category-page-label">' + incidentStatus + '</span>' : incidentStatus === 'MONITORING' ? '<span class="label label-info" id="category-page-label">' + incidentStatus + '</span>' : incidentStatus === 'NEW' ? '<span class="label" id="category-page-label">' + incidentStatus + '</span>' : incidentStatus === 'UPDATED' ? '<span class="label label-info" id="category-page-label">' + incidentStatus + '</span>' : '';
         }
+
+        //return subribe global notification object
+        function subscribeGlobalNotification(sectionID) {
+            return {
+                url: '/api/v2/help_center/sections/' + sectionID + '/subscriptions.json',
+                type: 'POST',
+                data: {
+                    "subscription": {
+                        "source_locale": "en-us",
+                        "include_comments": true,
+                        "user_id": globalnotif_user_id
+                    }
+                }
+            }
+        }
+
+        //hide sk-folding-cube animation
+        function hideLoadingAnimation() {
+            if (!$('#loader-container').hasClass('hide')) {
+                $('#loader-container').addClass('hide');
+            }
+        }
+
+        //show sk-folding-cube animation
+        function showLoadingAnimation() {
+            $('#loader-container').removeClass('hide');
+        }
+
+        function getUserSegments(){
+            return $.get('/api/v2/help_center/user_segments.json');
+        }
+
+        //
+        function getUserSegmentsSelect(){
+            var segmentsSelect = '<select class="segments-select"><option>Everyone</option>';
+            userSegments.forEach(function(segment){
+                segmentsSelect +='<option value="'+ segment.id+'">'+segment.name+'</option>'
+            });
+            return segmentsSelect + '</select>';
+        }   
+
         if (HelpCenter.user.locale) {
-            $.get('/api/v2/help_center/' + HelpCenter.user.locale + '/categories/' + message_board_loc + '/sections.json', function(platforms) {
+            $.get('/api/v2/help_center/' + HelpCenter.user.locale + '/categories/' + message_board_loc + '/sections.json').done(function(platforms) {
                 allPlatforms = platforms.sections;
-                $('.incident-nav-cont').append('<button class="prev"> << Prev </button> <a class="titles">pages</a> <button class="next" > Next >> </button>');
-                $('.subs-nav-cont').append('<button class="prev2"> << Prev </button> <a class="titles2">pages</a> <button class="next2"> Next >> </button>');
-                // click next  
+                $('.incident-nav-cont').append('<button class="prev"></button> <a class="titles"></a> <button class="next" ></button>');
+                $('.subs-nav-cont').append('<button class="prev2"></button> <a class="titles2"></a> <button class="next2"></button>');
+                // click next  ;
                 $('.prev').hide()
                 $('.titles').css('margin-left', 180);
                 $('.next').click(function() {
@@ -133,7 +112,6 @@ $(document).ready(function() {
                     var x = $('.incident-nav-item-active').next('.incident-nav-item')
                     if (x.length) {
                         x.click()
-
                     } else {
                         $('.next ').hide()
                     }
@@ -155,7 +133,6 @@ $(document).ready(function() {
 
                     }
                 });
-
                 // click next 2 
                 $('.next2').click(function() {
                     $('.prev2').show()
@@ -163,7 +140,6 @@ $(document).ready(function() {
                     var x2 = $('.subs-nav-item-active').next('.subs-nav-item')
                     if (x2.length) {
                         x2.click()
-
                     } else {
                         $('.next2 ').hide()
                     }
@@ -231,7 +207,7 @@ $(document).ready(function() {
                                 }
                                 var incident_id = incidents.articles[n].id;
                                 var incident_date = new Date(incidents.articles[n].created_at);
-                                if (incident_title[0] === "[") {
+                                if (incident_title[0] === "[" && !incidents.articles[n].label_names.includes("Type:Maintenance")) {
                                     var incident_title = incident_title.slice(incident_title.indexOf(']') + 1, incident_title.length);
                                 }
                                 var getIncidentStatus = "";
@@ -250,14 +226,14 @@ $(document).ready(function() {
                                 count++;
                             }
                         }
-                        if (count == 0) {
-
-                        }
                         $('.section > .article-list').css("height", "auto");
                         $('.main-components-container').css("margin-top", "40px");
                     })
                 }
             });
+            getUserSegments().done(function(data){
+                userSegments = data.user_segments; 
+            })
         } else {
             $(".component-loader").remove();
         }
@@ -289,26 +265,50 @@ $(document).ready(function() {
                 })
             });
         }
+
         $('.sub-nav .search').css('display', 'none');
         $('.see-all-articles').each(function() {
             $(this).html('Past Incidents <span style="font-family:arial">→</span>');
         });
         $('main').not(".messageBoard").append('<div class="incident-view-page"></div>');
-        if (jQuery.inArray("view_support_content", HelpCenter.user.tags) !== -1) { //user_apac
+        //jQuery.inArray("view_support_content", HelpCenter.user.tags) !== -1
+        if (true) { //user_apac
             // APPENDS
-            var createIncidentModal = '<div class="modal" id="create-incident-modal"> <div class="modal-content"> <div class="modal-header"><button class="close close-modal">X</button><h1>Create an Incident</h1><div class="select-template"><select class="select-picker select-template-dropdown" name="Select Template"> <option class="template" value="none">Use Template</option> </select> </div></div><div class="modal-body"> <div class="modal-body-detail components-affected"> <label>Components Affected</label> <div class="component-container"> </div></div><h1 style="font-size: 20px;font-weight: 400;">Messaging</h1><br><div class="modal-body-detail incident-name"> <label>Title</label> <br><input type="text" id="incident-name" name="" placeholder="Incident Title"><span class="info"></span> </div><div class="modal-body-detail incident-severity"><label>Severity</label><br><select><option value="1">Operational</option><option value="3">Degraded Performance</option><option value="4">Minor Outage</option><option value="5">Major Outage</option></select></div><div class="modal-body-detail incident-status"> <label>Status</label> <div class="status-choices"> <input type="radio" name="iInvestigating" value="Investigating"><span class="radio-label">Investigating</span> <input type="radio" name="iIdentified" value="Identified"><span class="radio-label">Identified</span> <input type="radio" name="iMonitoring" value="Monitoring"><span class="radio-label">Monitoring</span> <input type="radio" name="iResolved" value="Resolved"><span class="radio-label">Resolved</span> </div></div><div class="modal-body-detail incident-message"> <div style="padding: 20px;border: 1px solid #ababab;border-radius: 5px;background-color: #fffdf6;" id="iInternal"><label class="gswitch"><input type="checkbox" id="iInternalMessage"><span class="gslider round"></span></label><label style="margin-bottom: 30px;font-size:18px">Internal Message</label> <div style="clear: both; display: block;margin-bottom:30px">Send e-mail to subscribers<label class="gswitch"><input type="checkbox" id="iEmailSubscribers"><span class="gslider round green"></span></label></div> <textarea placeholder="Message" id="iMessage"></textarea> </div><br><div style="padding: 20px;border: 1px solid #ababab;border-radius: 5px;background-color: #F5FDFE;" id="iExternal"><label class="gswitch"><input type="checkbox" id="iExternalMessage"><span class="gslider round"></span></label><label style="margin-bottom: 30px;font-size:18px">External Message <span style="font-size: 0.7em;vertical-align: middle;font-weight: 400;">| <span class="copyText" style="color:#2E64F8;">Copy from Internal Message</span></span></label> <div style="clear: both; display: none" id="showHome">Show in SAS homepage<label class="gswitch"><input type="checkbox" id="iExShowHomepage"><span class="gslider round green"></span></label></div> <div  style="clear: both; display: block; margin-bottom:30px">Send e-mail to subscribers<label class="gswitch"><input type="checkbox" id="iExEmailSubscribers"><span class="gslider round green"></span></label></div> <textarea placeholder="Message" id="iExMessage"></textarea> </div></div></div><div class="modal-footer"><button class="btn btn-primary" id="create-incident-btn">CREATE INCIDENT</button></div></div></div>';
-            var newScheduledMaintenaceModal = '<div class="modal" id="new-scheduled-maintenance-modal"> <div class="modal-content"> <div class="modal-header"><button class="close close-modal">X</button><h1>New Scheduled Maintenance</h1><div class="select-template"><select class="select-picker select-template-dropdown" name="Select Template"><option value="none">Use Template</option></select></div></div><div class="modal-body"> <div class="modal-body-detail components-affected"> <label>Components Affected</label> <div class="component-container"> </div></div> <h1 style="font-size: 20px;font-weight: 400;">Messaging</h1><br><div class="modal-body-detail maintenance-name"> <label>Title</label><input id="maintenance-name" name="" placeholder="Maintenance Title" type="text" required> </div><div class="modal-body-detail maintenance-details"> <div style="padding: 20px;border: 1px solid #ababab;border-radius: 5px;background-color: #fffdf6;" id="mInternal"><label class="gswitch"><input type="checkbox" id="mInternalMessage"><span class="gslider round"></span></label><label style="margin-bottom: 30px;font-size:18px">Internal Message</label> <div style="clear: both; display: block;margin-bottom:30px">Send e-mail to subscribers<label class="gswitch"><input type="checkbox" id="mEmailSubscribers"><span class="gslider round green"></span></label></div> <textarea placeholder="Message" id="mMessage"></textarea> </div><br><div style="padding: 20px;border: 1px solid #ababab;border-radius: 5px;background-color: #F5FDFE;" id="mExternal"><label class="gswitch"><input type="checkbox" id="mExternalMessage"><span class="gslider round"></span></label><label style="margin-bottom: 30px;font-size:18px">External Message <span style="font-size: 0.7em;vertical-align: middle;font-weight: 400;">| <span class="copyText" style="color:#2E64F8;">Copy from Internal Message</span></span></label> <div style="clear: both; display: none" id="showHome">Show in SAS homepage<label class="gswitch"><input type="checkbox" id="mExShowHomepage"><span class="gslider round green"></span></label></div> <div  style="clear: both; display: block; margin-bottom:30px">Send e-mail to subscribers<label class="gswitch"><input type="checkbox" id="mExEmailSubscribers"><span class="gslider round green"></span></label></div> <textarea placeholder="Message" id="mExMessage"></textarea> </div> </div><div class="maintenance-start"> <label>Maintenance Start Time</label> <div class="maintenance-time"> <input name="" type="date" required> <select class="time-select"></select> </div><span class="info">All times must be specified in EST - Eastern Standard Time(US & Canada)</span> </div><div class="maintenance-end"> <label>Maintenance End Time</label> <div class="maintenance-time"> <input name="" type="date" required> <select class="time-select"></select> </div><span class="info">All times must be specified in EST - Eastern Standard Time(US & Canada)</span> </div></div><div class="modal-footer"><button class="btn btn-primary" id="create-new-scheduled-maintenance">CREATE MAINTENANCE</button></div></div></div>';
+            var createIncidentModal = '<div class="modal" id="create-incident-modal"> <div class="modal-content"> <div class="modal-header"><button class="close close-modal">X</button><h1>Create an Incident</h1><div class="select-template"><select class="select-picker select-template-dropdown" name="Select Template"> <option class="template" value="none">Use Template</option> </select> </div></div><div class="modal-body"> <div class="modal-body-detail components-affected"> <label>Components Affected</label> <div class="component-container"> </div></div><h1 style="font-size: 20px;font-weight: 400;">Messaging</h1><br><div class="modal-body-detail incident-name"> <label>Title</label> <br><input type="text" id="incident-name" name="" placeholder="Incident Title"><span class="info"></span> </div><div class="modal-body-detail incident-severity"><label>Severity</label><br><select><option value="1">Operational</option><option value="3">Degraded Performance</option><option value="4">Minor Outage</option><option value="5">Major Outage</option></select></div><div class="modal-body-detail incident-status"> <label>Status</label> <div class="status-choices"> <input type="radio" name="iInvestigating" value="Investigating"><span class="radio-label">Investigating</span> <input type="radio" name="iIdentified" value="Identified"><span class="radio-label">Identified</span> <input type="radio" name="iMonitoring" value="Monitoring"><span class="radio-label">Monitoring</span> <input type="radio" name="iResolved" value="Resolved"><span class="radio-label">Resolved</span> </div></div><div class="modal-body-detail incident-message"> <div style="padding: 20px;border: 1px solid #ababab;border-radius: 5px;background-color: #fffdf6;" id="iInternal"><label class="gswitch"><input type="checkbox" id="iInternalMessage"><span class="gslider round"></span></label><label style="margin-bottom: 30px;font-size:18px">Internal Message</label> <div class="send-notification-label" style="clear: both; display: block;margin-bottom:30px">Send e-mail to subscribers<label class="gswitch"><input type="checkbox" id="iEmailSubscribers"><span class="gslider round green"></span></label></div> <textarea placeholder="Message" id="iMessage"></textarea> </div><br><div style="padding: 20px;border: 1px solid #ababab;border-radius: 5px;background-color: #F5FDFE;" id="iExternal"><label class="gswitch"><input type="checkbox" id="iExternalMessage"><span class="gslider round"></span></label><label style="margin-bottom: 30px;font-size:18px">External Message <span style="font-size: 0.7em;vertical-align: middle;font-weight: 400;">| <span class="copyText" style="color:#2E64F8;">Copy from Internal Message</span></span></label> <div style="clear: both; display: none" id="showHome">Show in SAS homepage<label class="gswitch"><input type="checkbox" id="iExShowHomepage"><span class="gslider round green"></span></label></div> <div  style="clear: both; display: block; margin-bottom:30px">Send e-mail to subscribers<label class="gswitch"><input type="checkbox" id="iExEmailSubscribers"><span class="gslider round green"></span></label></div> <textarea placeholder="Message" id="iExMessage"></textarea> </div></div></div><div class="modal-footer"><button class="btn btn-primary" id="create-incident-btn">CREATE INCIDENT</button></div></div></div>';
+            var newScheduledMaintenaceModal = '<div class="modal" id="new-scheduled-maintenance-modal"> <div class="modal-content"> <div class="modal-header"><button class="close close-modal">X</button><h1>New Scheduled Maintenance</h1><div class="select-template"><select class="select-picker select-template-dropdown" name="Select Template"><option value="none">Use Template</option></select></div></div><div class="modal-body"> <div class="modal-body-detail components-affected"> <label>Components Affected</label> <div class="component-container"> </div></div> <h1 style="font-size: 20px;font-weight: 400;">Messaging</h1><br><div class="modal-body-detail maintenance-name"> <label>Title</label><input id="maintenance-name" name="" placeholder="Maintenance Title" type="text" required> </div><div class="modal-body-detail maintenance-details"> <div style="padding: 20px;border: 1px solid #ababab;border-radius: 5px;background-color: #fffdf6;" id="mInternal"><label class="gswitch"><input type="checkbox" id="mInternalMessage"><span class="gslider round"></span></label><label style="margin-bottom: 30px;font-size:18px">Internal Message</label> <div class="maintenance-container" style="clear: both; display: block;margin-bottom:30px">Send e-mail to subscribers<label class="gswitch"><input type="checkbox" id="mEmailSubscribers"><span class="gslider round green"></span></label></div> <textarea placeholder="Message" id="mMessage"></textarea> </div><br><div style="padding: 20px;border: 1px solid #ababab;border-radius: 5px;background-color: #F5FDFE;" id="mExternal"><label class="gswitch"><input type="checkbox" id="mExternalMessage"><span class="gslider round"></span></label><label style="margin-bottom: 30px;font-size:18px">External Message <span style="font-size: 0.7em;vertical-align: middle;font-weight: 400;">| <span class="copyText" style="color:#2E64F8;">Copy from Internal Message</span></span></label> <div style="clear: both; display: none" id="showHome">Show in SAS homepage<label class="gswitch"><input type="checkbox" id="mExShowHomepage"><span class="gslider round green"></span></label></div> <div  style="clear: both; display: block; margin-bottom:30px">Send e-mail to subscribers<label class="gswitch"><input type="checkbox" id="mExEmailSubscribers"><span class="gslider round green"></span></label></div> <textarea placeholder="Message" id="mExMessage"></textarea> </div> </div><div class="maintenance-start"> <label>Maintenance Start Time</label> <div class="maintenance-time"> <input name="" type="date" required> <select class="time-select"></select> </div><span class="info">All times must be specified in EST - Eastern Standard Time(US & Canada)</span> </div><div class="maintenance-end"> <label>Maintenance End Time</label> <div class="maintenance-time"> <input name="" type="date" required> <select class="time-select"></select> </div><span class="info">All times must be specified in EST - Eastern Standard Time(US & Canada)</span> </div></div><div class="modal-footer"><button class="btn btn-primary" id="create-new-scheduled-maintenance">CREATE MAINTENANCE</button></div></div></div>';
             $('body').append('<div class="message-board-container"><header class="header"><div class="header-inner clearfix"><div id="goto-status" class="close-MB-admin"><i class="fa fa-times"></i></div><div class="logo"><h2>Message Board Admin</h2></div><nav class="user-nav"><a role="button" id="goto-incidents">Incidents</a><a role="button" id="goto-subscribers">Subscribers</a><a role="button" id="goto-platforms">Platforms</a></nav></div></header></nav><main class="messageBoard"></main>').append('<button id="goto-messageBoard-admin"><svg class="message-board-admin-icon" viewBox="2 2 22 22"><path fill="currentColor" d="M13 16.627a3.625 3.625 0 0 1-3.63-3.622A3.633 3.633 0 0 1 13 9.373a3.633 3.633 0 0 1 3.63 3.632A3.625 3.625 0 0 1 13 16.627m8.295-4.902h-.006a2.116 2.116 0 0 1-1.955-1.307l-.031-.075a2.117 2.117 0 0 1 .459-2.306.693.693 0 0 0 0-.998l-.809-.809a.71.71 0 0 0-.997 0 2.106 2.106 0 0 1-2.295.457l-.08-.033a2.109 2.109 0 0 1-1.302-1.948.705.705 0 0 0-.705-.706h-1.148a.705.705 0 0 0-.705.706c0 .855-.514 1.628-1.306 1.95-.021.009-.043.017-.063.027a2.106 2.106 0 0 1-2.308-.453.72.72 0 0 0-1.006 0l-.81.81a.708.708 0 0 0 0 .997l.007.006a2.11 2.11 0 0 1 .454 2.305c-.01.022-.018.045-.028.066a2.103 2.103 0 0 1-1.95 1.311h-.006a.706.706 0 0 0-.705.706v1.138c0 .39.316.706.705.706h.002a2.1 2.1 0 0 1 1.949 1.306l.029.069a2.11 2.11 0 0 1-.452 2.31l-.004.003a.708.708 0 0 0 0 .998l.809.809a.72.72 0 0 0 1.006 0l.005-.005a2.106 2.106 0 0 1 2.307-.452l.059.024a2.104 2.104 0 0 1 1.306 1.95v.007c0 .395.32.706.705.706h1.148c.385 0 .705-.31.705-.706v-.007c0-.855.514-1.627 1.306-1.95l.059-.024a2.106 2.106 0 0 1 2.307.452l.005.005a.71.71 0 0 0 .997 0l.809-.81a.693.693 0 0 0 0-.997l-.004-.003a2.11 2.11 0 0 1-.452-2.31l.029-.069a2.102 2.102 0 0 1 1.948-1.306h.012a.706.706 0 0 0 .705-.706v-1.138a.706.706 0 0 0-.705-.706"></path></svg>Message Board Admin</button>');
             $('main.messageBoard').append('<div class="incident-container"> <div class="incident-navigation"> <div class="incident-nav-header"> <div class="incident-header-title">Incidents</div><a class="create-incident-modal-btn incident-subscribe-button incident-save-button">+ NEW INCIDENT</a><a class="create-maintenance-modal-btn incident-subscribe-button incident-save-button">+ NEW MAINTENANCE</a><a id="new-incident-template" class="incident-subscribe-button incident-save-button">+ INCIDENT TEMPLATE</a><a id="new-maintenance-template" class="incident-subscribe-button incident-save-button">+ Maintenance TEMPLATE</a><input class="incident-nav-search" type="search" placeholder="Search"> </div> <div class="incident-nav-cont"> </div>  </div></div>' + '<div class="platform-container"> <div class="incident-navigation"><div class="incident-nav-header"> <div class="incident-header-title">Platforms </div> </div> <div class="incident-nav-board"> <a id="create-platform-btn" class="incident-subscribe-button incident-save-button">+ NEW PLATFORM </a></div><div class="incident-list-item" style="border-bottom:2px solid #E0E0E0;width:100%;margin-top: -40px;"><div class="incident-item-body"><h5></h5></div> <div class="incident-item-action" style="flex:3"><h5 style="width:220px"></h5><h5 style="width:220px"></h5><h5 style="flex:1;text-align:center">Show Status</h5><h5 style="flex:1;text-align:center">Show Section</h5><h5 style="flex:1;"></h5></div></div></div> <div class="platform-list-cont"></div></div>' + '<div class="subs-container"> <div class="subs-navigation"> <div class="subs-nav-header"> <div class="subs-header-title">Subscribers </div> <input class="subs-nav-search" type="search" placeholder="Search"> </div> <div class="subs-nav-cont"> </div> <div class="subs-nav-board"> <input type="email" placeholder="User email" spellcheck="false" id="subs-add-email"> <a id="subs-item-add" class="incident-subscribe-button incident-save-button">Add Subscriber </a></div> </div></div>' + '<div class="incident-view-page"></div>');
             $('body').append(newScheduledMaintenaceModal);
             $('body').append(createIncidentModal);
             $('body').append('<div class="modal" id="new-incident-template-modal"> <div class="modal-content"> <div class="modal-header"><button class="close close-modal">X</button><h1>Incident Template</h1><div class="select-template"><select class="select-picker update-template-dropdown" name="Select Template"><option class="template" value="none">Update Template</option> </select> </div></div> <div class="modal-body"> <div class="modal-body-detail template-name"><label>Template Name</label><br><input type="text" placeholder="Template Name"><span class="info">This is used internally so you can identify which template you are using.</span></div><div class="modal-body-detail incident-title"> <label>Incident Title </label> <br> <input type="text" placeholder="Incident Title"><span class="info">The title given to the incident or scheduled maintenance. This is only applied when creating an incident or scheduled maintenance.</span></div><div class="modal-body-detail incident-status"> <label>Incident Status</label><br><select> <option value="Investigating">Investigating</option> <option value="Identified">Identified</option> <option value="Monitoring">Monitoring</option> <option value="Resolved">Resolved</option> </select><span class="info">The status will be applied to the incident or scheduled maintenance.</span></div><div class="modal-body-detail incident-severity"><label>Incident Severity</label><br><select><option value="1">Operational</option><option value="3">Degraded Performance</option><option value="4">Minor Outage</option><option value="5">Major Outage</option></select><span class="info">The severity will be applied to the incident or scheduled maintenance.</span></div><div class="modal-body-detail incident-message"> <label>Message Body </label> <br> <textarea placeholder="Message" style="margin-top: 0px; margin-bottom: 0px; height: 80px;"> </textarea> </div> <div class="modal-body-detail components-affected"> <label>Alert Users Subscribed To: </label> <div class="component-container"></div> </div></div><div class="modal-footer"><button class="btn btn-primary delete-template-btn">DELETE TEMPLATE</button><button class="btn btn-primary" id="update-incident-template-btn">UPDATE TEMPLATE</button><button class="btn btn-primary" id="create-incident-template-btn">CREATE INCIDENT TEMPLATE</button></div> </div></div>');
             $('body').append('<div class="modal" id="new-maintenance-template-modal"> <div class="modal-content"> <div class="modal-header"> <button class="close close-modal">X </button> <h1>Maintenance Template</h1><div class="select-template"><select class="select-picker update-template-dropdown" name="Select Template"> <option class="template" value="none">Update Template</option> </select> </div></div> <div class="modal-body"> <div class="modal-body-detail template-name"> <label>Template Name </label> <br> <input type="text" placeholder="Template Name"> <span class="info">This is used internally so you can identify which template you are using. </span> </div> <div class="modal-body-detail maintenance-title"> <label>Maintenance Title </label> <br> <input type="text" placeholder="Maintenance Title"> <span class="info">The title given to the incident or scheduled maintenance. This is only applied when creating an incident or scheduled maintenance. </span> </div> <div class="modal-body-detail maintenance-message"> <label>Message Body </label> <br> <textarea placeholder="Message" style="margin-top: 0px; margin-bottom: 0px; height: 80px;"> </textarea> </div> <div class="modal-body-detail components-affected"> <label>Alert Users Subscribed To: </label> <div class="component-container"> </div> </div> </div> <div class="modal-footer"><button class="btn btn-primary delete-template-btn">DELETE TEMPLATE</button><button class="btn btn-primary" id="update-maintenance-template-btn">UPDATE TEMPLATE</button><button class="btn btn-primary" id="create-maintenance-template-btn">CREATE MAINTENANCE TEMPLATE </button> </div> </div></div>');
+            //append loading animation
+            $('.message-board-container').append('<div class="hide" id="loader-container"><div class="sk-folding-cube"><div class="sk-cube1 sk-cube"></div><div class="sk-cube2 sk-cube"></div><div class="sk-cube4 sk-cube"></div><div class="sk-cube3 sk-cube"></div></div><div class="warningMessage"><div class="warning-sign-container"><a><i class="fas fa-exclamation-circle"></i></a></div><div class="warning-message-container"><span>Making API Requests</span><br><span>Please do not press back button or close window.</span></div></div></div>')
             $('textarea').ckeditor();
+
+            function checkUserSegments(callback){
+                if(userSegments.length){
+                    callback();
+                }else{
+                    getUserSegments().done(function(data){
+                        userSegments = data.user_segments;
+                        callback();
+                    })
+                } 
+            }
             //End of APPENDS
             $('.create-maintenance-modal-btn').click(function() {
+                checkUserSegments(openNewMaintenanceModal);
+                function openNewMaintenanceModal(){
                 cleanModal();
                 $('html').css('overflow', 'hidden');
+
+                if(!$('#new-scheduled-maintenance-modal .segments-select').length){
+                    var segmentContainer = '<div class="segments-container"><label for="segments-select">Visible To</label>'+getUserSegmentsSelect()+' </div>'
+                    $(segmentContainer).insertBefore('#mInternal .maintenance-container')
+    
+                    $(segmentContainer).insertAfter('#mExternal #showHome')
+                    }
                 $('#new-scheduled-maintenance-modal').fadeIn("fast");
                 setTimeout(function() {
                     CKEDITOR.instances["mMessage"].plugins.lite.findPlugin(CKEDITOR.instances["mMessage"]).toggleTracking(false, false);
@@ -319,21 +319,34 @@ $(document).ready(function() {
                 $("#mInternal > div").fadeIn();
                 $("#mExternal > div").fadeIn();
                 $("#mExternal > #showHome").hide();
+                }
             })
+
+
             $('.create-incident-modal-btn').click(function() {
-                cleanModal();
-                $('html').css('overflow', 'hidden');
-                $('#create-incident-modal').fadeIn("fast");
-                setTimeout(function() {
-                    CKEDITOR.instances["iMessage"].plugins.lite.findPlugin(CKEDITOR.instances["iMessage"]).toggleTracking(false, false);
-                    CKEDITOR.instances["iExMessage"].plugins.lite.findPlugin(CKEDITOR.instances["iExMessage"]).toggleTracking(false, false);
-                }, 300);
-                $(".gswitch input").prop('checked', true);
-                $("#iExShowHomepage").prop("checked", false);
-                $("#iInternal > div").fadeIn();
-                $("#iExternal > div").fadeIn();
-                $("#showHome").hide();
+                checkUserSegments(openCreateIncidentModal);
+                function openCreateIncidentModal(){
+                    cleanModal();
+                    $('html').css('overflow', 'hidden');
+
+                    if(!$('#create-incident-modal .segments-select').length){
+                    var segmentContainer = '<div class="segments-container"><label for="segments-select">Visible To</label>'+getUserSegmentsSelect()+' </div>'
+                    $(segmentContainer).insertBefore('#iInternal .send-notification-label');
+                    $(segmentContainer).insertAfter('#create-incident-modal #showHome');
+                    }
+                    $('#create-incident-modal').fadeIn("fast");
+                    setTimeout(function() {
+                        CKEDITOR.instances["iMessage"].plugins.lite.findPlugin(CKEDITOR.instances["iMessage"]).toggleTracking(false, false);
+                        CKEDITOR.instances["iExMessage"].plugins.lite.findPlugin(CKEDITOR.instances["iExMessage"]).toggleTracking(false, false);
+                    }, 300);
+                    $(".gswitch input").prop('checked', true);
+                    $("#iExShowHomepage").prop("checked", false);
+                    $("#iInternal > div").fadeIn();
+                    $("#iExternal > div").fadeIn();
+                    $("#showHome").hide();
+                }
             })
+
             $('#iInternalMessage').click(function() {
                 if ($("#iInternal .gswitch input").prop('checked')) {
                     $("#iSubscribeGN, #iEmailSubscribers").prop('checked', true);
@@ -344,6 +357,7 @@ $(document).ready(function() {
                 }
                 checkBtnStatus();
             })
+
             $('#iExternalMessage').click(function() {
                 if ($("#iExternal .gswitch input").prop('checked')) {
                     $("#iExSubscribeGN, #iExEmailSubscribers").prop('checked', true);
@@ -354,6 +368,7 @@ $(document).ready(function() {
                 }
                 checkBtnStatus();
             })
+
             $('#mInternalMessage').click(function() {
                 if ($("#mInternal .gswitch input").prop('checked')) {
                     $("#mSubscribeGN, #mEmailSubscribers").prop('checked', true);
@@ -396,9 +411,10 @@ $(document).ready(function() {
                     $('html').css('overflow', 'auto');
                 }
             })
+
+
             //================================================= DYNAMIC COMPONENTS ============
             var templates = [];
-
             function populateTemplate() {
                 $.get("/api/v2/help_center/en-us/articles.json?label_names=Type:Template", function(results) {
                     $(".select-template-dropdown").each(function() {
@@ -523,13 +539,7 @@ $(document).ready(function() {
                 $('.delete-template-btn,#update-incident-template-btn,#update-maintenance-template-btn').hide(),
                     $('#create-maintenance-template-btn,#create-incident-template-btn').show();
             }
-            $('body').on("change", "#create-incident-modal .component input[value='" + sas_internal + "'],#new-scheduled-maintenance-modal .component input[value='" + sas_internal + "']", function() {
-                if ($(this).is(":checked")) {
-                    $("#create-incident-modal .components-affected, #new-scheduled-maintenance-modal .components-affected").after('<div class="modal-body-detail global-notifications"><label>Global Notifications</label><br><input type="checkbox" checked class="subscribe-global-notif"><span class="checkbox-label">Subscribe globalnotifications@sizmek.com.</span></div>')
-                } else {
-                    $(".global-notifications").remove();
-                }
-            })
+
             $('body').on("change", "#create-incident-modal .component input[value='" + sas + "'], #new-scheduled-maintenance-modal .component input[value='" + sas + "']", function() {
                 if ($(this).closest('.modal').attr("id") == "create-incident-modal") {
                     var type = "Incident"
@@ -554,21 +564,23 @@ $(document).ready(function() {
                     }
                 }
             })
+
             $(".copyText").click(function() {
                 $("#iExMessage").val($("#iMessage").val());
                 $("#mExMessage").val($("#mMessage").val());
             })
-            //================================================= CREATE INCIDENT ===============
+
+            //when Create Incident button is clicked
             $('#create-incident-btn').click(function() {
+                console.log('%c Create Incident ', 'background:#006dcc; color:#ffffff;font-size:15px;');
                 $(this).attr("disabled", true);
                 var thismodal = $(this).closest('.modal');
                 var params = [];
-                var compoCount = thismodal.find('.components-affected input[type="checkbox"]:checked').length;
+                var newIncidentIDs = [];
                 params['incidentName'] = thismodal.find('#incident-name').val();
                 params['incidentStatus'] = thismodal.find('.incident-status input[type="radio"]:checked').val();
                 params['incidentSeverity'] = thismodal.find('.incident-severity select').val();
-                params['globalnotif'] = true;
-            
+
                 if (params.incidentName == "" || params.incidentStatus == undefined || thismodal.find('.components-affected input[type="checkbox"]:checked').val() == undefined) {
                     $(this).removeAttr('disabled');
                     alert("Please fill up all the fields.");
@@ -583,110 +595,168 @@ $(document).ready(function() {
                                 intIncidentName = intIncidentName + "[" + $(this).text().trim() + "]";
                             })
                             intIncidentName = intIncidentName + ' ' + thismodal.find('#incident-name').val();
-                            setTimeout(function() {
-                                //submit internal message to Internal section
-                                params['incidentName'] = intIncidentName;
-                                params['message'] = $("#iInternal textarea").val();
-                                params['notifications'] = $("#iEmailSubscribers").prop('checked');
-                                createIncident(sas_internal, params, true);
-                            }, 1500 * compoCount);
+                            //submit internal message to Internal section
+                            params['incidentName'] = intIncidentName;
+                            params['message'] = $("#iInternal textarea").val();
+                            params['notifications'] = $("#iEmailSubscribers").prop('checked');
+                            params.user_segment_id = parseInt($('#iInternal .segments-select').val());
+                            createArticleObject(internalSectionID, params, 'incident');
                         }
                         if ($("#iExternal .gswitch input").prop('checked')) {
                             //submit external message to selected component section
+                            params['incidentName'] = thismodal.find('#incident-name').val();
                             params.message = $("#iExternal textarea").val();
                             params.notifications = $("#iExEmailSubscribers").prop('checked');
                             params.sas_visibility = $("#iExShowHomepage").prop("checked");
-                            var itr = 0;
+                            params.user_segment_id = parseInt($('#iExternal .segments-select').val());
                             thismodal.find('.components-affected input[type="checkbox"]:checked').each(function() {
-                                itr++,
-                                createIncident($(this).val(), params,
-                                    (itr === compoCount && !$("#iInternal .gswitch input").prop('checked')));
+                                createArticleObject($(this).val(), params, 'incident');
                             })
+                        }
+                        $("#create-incident-modal").fadeOut("fast");
+                        showLoadingAnimation();
+                        startRequest(postRequests, 0);
+
+                        function startRequest(requests, ndx) {
+                            console.log("\nRequest: ", requests[ndx]);
+                            var isCreateIncident = false;
+                            if (requests[ndx].action) {
+                                delete requests[ndx].action;
+                                isCreateIncident = true;
+                            }
+
+                            $.ajax(requests[ndx]).done(function(data) {
+                                if (isCreateIncident){
+                                    newIncidentIDs.push(data.article.id); 
+                                }
+                                console.log('Status: %c Success ', 'background:#222; color:#00ff00');
+                                if (requests[ndx].type.toLowerCase() !== "delete") console.log("Response: ", data);
+                                if (ndx < requests.length - 1) {
+                                    startRequest(requests, ndx + 1);
+                                } else {
+                                    addRelatedIncidents(newIncidentIDs, 0);
+                                }
+                            }).fail(function(data) {
+                                console.log('Status: %c Error ', 'background:#222; color:#ff0000');
+                                console.log("Response", data);
+                            })
+                        }
+
+                        var relatedIncidentRequests = [];
+
+                        function addRelatedIncidentsLabel(labelName, incidentID) {
+                            return {
+                                url: '/api/v2/help_center/articles/' + incidentID + '/labels.json',
+                                type: 'POST',
+                                data: {
+                                    "label": {
+                                        "name": labelName
+                                    }
+                                }
+                            }
+                        }
+
+                        function addRelatedIncidents(arrID, ndx) {
+                            if (ndx < arrID.length) {
+                                var relatedIncidents = arrID.filter(function(id) {
+                                    return id !== arrID[ndx];
+                                });
+                                if (relatedIncidents.length) {
+                                    relatedIncidentRequests.push(addRelatedIncidentsLabel("RelatedIncidents:" + relatedIncidents.join(' '), arrID[ndx]));
+                                    addRelatedIncidents(arrID, ndx + 1);
+                                } else {
+                                    closeModal(arrID[ndx]);
+                                }
+                            } else {
+                                initRelatedIncidents(relatedIncidentRequests, 0);
+                            }
+                        }
+
+                        function initRelatedIncidents(reqArray, ndx) {
+                            console.log("\nRequest: ", reqArray[ndx]);
+                            $.ajax(reqArray[ndx]).done(function(data) {
+                                console.log('Status: %c Success ', 'background:#222; color:#00ff00');
+                                if (reqArray[ndx].type.toLowerCase() !== "delete") console.log("Response: ", data);
+                                if (ndx < reqArray.length - 1) {
+                                    initRelatedIncidents(reqArray, ndx + 1)
+                                } else {
+                                    closeModal(newIncidentIDs[newIncidentIDs.length - 1]);
+                                }
+                            }).fail(function(data) {
+                                console.log('Status: %c Error ', 'background:#222; color:#ff0000');
+                                console.log("Response", data);
+                            })
+                        }
+
+                        function closeModal(incidentID) {
+                            $('.btn').removeAttr("disabled");
+                            view_incident(incidentID);
+                            postRequests = [];
                         }
                     }
                 }
             })
 
-            function createIncident(sect_id, params, final) {
-                // if (params.globalnotif != "undefined" && params.globalnotif == true) {
-                //     $.ajax({
-                //         url: '/api/v2/help_center/sections/' + sect_id + '/subscriptions.json',
-                //         type: 'POST',
-                //         data: {
-                //             "subscription": {
-                //                 "source_locale": "en-us",
-                //                 "include_comments": true,
-                //                 "user_id": globalnotif_user_id
-                //             }
-                //         }
-                //     })
-                // };
-                var obj = {},
-                    article = {},
-                    label_names = {};
-                if (params.sas_visibility != "undefined" && params.sas_visibility == false && sect_id == sas) {
-                    var labels = ["Type:Incident", "Status:" + params.incidentStatus, "Name:" + params.incidentName, "Severity:" + params.incidentSeverity, "Hidden"];
-                } else if (params.sas_visibility != "undefined" && params.sas_visibility == true && sect_id == sas) {
-                    var labels = ["Type:Incident", "Status:" + params.incidentStatus, "Name:" + params.incidentName, "Severity:" + params.incidentSeverity, "ShowInHomepage"];
-                } else {
-                    var labels = ["Type:Incident", "Status:" + params.incidentStatus, "Name:" + params.incidentName, "Severity:" + params.incidentSeverity];
+            //returns object for creating article
+            function addArticle(sectionID, body) {
+                return {
+                    url: "/api/v2/help_center/sections/" + sectionID + "/articles.json",
+                    type: "POST",
+                    data: JSON.stringify(body),
+                    contentType: "application/json",
+                    action: "createIncident"
                 }
-                var title = "[" + params.incidentStatus + "] " + params.incidentName;
-                article.title = title;
-                article.body = params.message;
-                article.author_id = globalsupport_user_id;
-                obj.article = article;
-                obj.article.label_names = labels;
-                obj.notify_subscribers = false;
-
-                function postData() {
-                    return $.ajax({
-                        url: "/api/v2/help_center/sections/" + sect_id + "/articles.json",
-                        method: "POST",
-                        data: JSON.stringify(obj),
-                        contentType: "application/json"
-                    });
-                }
-                postData().done(function(data) {
-                    incidentIDs.push(data.article.id);
-                    var promisesToPost = [];
-                    if (final) {
-                        console.log(incidentIDs)
-                        for (var i = 0; i < incidentIDs.length; i++) {
-                            (function(y) {
-                                var relatedIncidents = incidentIDs.filter(function(id) {
-                                    return id != incidentIDs[y];
-                                });
-                                if (relatedIncidents.length) {
-                                    var promiseToPost = $.ajax({
-                                        url: '/api/v2/help_center/articles/' + incidentIDs[y] + '/labels.json',
-                                        type: 'POST',
-                                        data: {
-                                            "label": {
-                                                "name": "RelatedIncidents: " + relatedIncidents.join(", ")
-                                            }
-                                        }
-                                    })
-                                    promisesToPost.push(promiseToPost);
-                                }
-                            })(i)
-                            $.when.apply(null, promisesToPost).done(function() {
-                                $('.btn').removeAttr("disabled");
-                                $("#create-incident-modal").fadeOut("fast");
-                                view_incident(data.article.id);
-                            })
-                        }
-                    }
-                })
-                refresh = true;
-            
             }
-            //==========================================================CREATE NEW SCHEDULED MAINTENANCE==================
+
+            function createArticleObject(sect_id, params, type) {
+                var obj = {},
+                    article = {};
+                if (type === "incident") {
+                    article.title = "[" + params.incidentStatus + "] " + params.incidentName;
+                    article.body = params.incidentStatus + ":<br><br>" + params.message;
+                    obj.article = article;
+                    obj.article.label_names = generateIncidentLabels(params, sect_id);
+                } else {
+                    var maintenanceStart = "Maintenance Start: " + params.startTime.date + " " + params.startTime.time + " ";
+                    var maintenanceEnd = "Maintenance End: " + params.endTime.date + " " + params.endTime.time + " ";
+                    article.title = params.maintenanceName + " " + params.startTime.date;
+                    article.body = params.incidentStatus + ":<br><br><strong>" + maintenanceStart + "</strong><br><strong>" + maintenanceEnd + "</strong><br><br>" + params.maintenanceDetails;
+                    obj.article = article;
+                    obj.article.label_names = generateMaintenanceLabels(params, sect_id);
+                }
+                obj.article.author_id = globalsupport_user_id;
+                obj.article.user_segment_id = params.user_segment_id;
+                obj.notify_subscribers = params.notifications;
+                postRequests.push(subscribeGlobalNotification(sect_id));
+                postRequests.push(addArticle(sect_id, obj));
+            }
+
+            function generateIncidentLabels(params, sect_id) {
+                var incidentlabels = ["Type:Incident", "Status:" + params.incidentStatus, "Name:" + params.incidentName, "Severity:" + params.incidentSeverity];
+                if (params.sas_visibility == false && sect_id == sas) {
+                    incidentlabels.push("Hidden");
+                } else if (params.sas_visibility == true && sect_id == sas) {
+                    incidentlabels.push("ShowInHomepage");
+                }
+                return incidentlabels;
+            }
+
+            function generateMaintenanceLabels(params, sect_id) {
+                var maintenancelabels = ["Type:Maintenance", "Status:" + "New", "Name:" + params.maintenanceName]
+                if (params.sas_visibility == false && sect_id == sas) {
+                    maintenancelabels.push("Hidden");
+                } else if (params.sas_visibility == true && sect_id == sas) {
+                    maintenancelabels.push("ShowInHomepage");
+                }
+                return maintenancelabels;
+            }
+
+            //when Create Maintenance button is clicked.
             $("#create-new-scheduled-maintenance").click(function() {
+                console.log('%c Create Maintenance ', 'background:#006dcc; color:#ffffff;font-size:15px;');
                 $(this).attr('disabled', true);
                 var thismodal = $(this).closest(".modal");
                 var params = [];
-                var compoCount = thismodal.find('.components-affected input[type="checkbox"]:checked').length;
                 params['maintenanceName'] = thismodal.find("#maintenance-name").val();
                 params['startTime'] = [];
                 params.startTime.date = thismodal.find(".maintenance-start input[type='date']").val();
@@ -694,7 +764,6 @@ $(document).ready(function() {
                 params['endTime'] = [];
                 params.endTime.date = thismodal.find(".maintenance-end input[type='date']").val();
                 params.endTime.time = thismodal.find(".maintenance-end .time-select").val();
-                params['globalnotif'] = true;
                 if (params.maintenanceName == "" || thismodal.find('.components-affected input[type="checkbox"]:checked').val() == undefined) {
                     $(this).removeAttr('disabled');
                     alert("Please fill up all the fields.");
@@ -709,81 +778,61 @@ $(document).ready(function() {
                                 intMaintName = intMaintName + "[" + $(this).text().trim() + "]";
                             })
                             intMaintName = intMaintName + ' ' + thismodal.find("#maintenance-name").val();
-                            setTimeout(function() {
-                                //submit internal message to Internal section
-                                params['maintenanceName'] = intMaintName;
-                                params.maintenanceDetails = $("#mInternal textarea").val();
-                                params['notifications'] = $("#mEmailSubscribers").prop('checked');
-                                addNewScheduledMaintenance(sas_internal, params, true);
-                            }, 1500 * compoCount);
+
+                            //submit internal message to Internal section
+                            params['maintenanceName'] = intMaintName;
+                            params.maintenanceDetails = $("#mInternal textarea").val();
+                            params['notifications'] = $("#mEmailSubscribers").prop('checked');
+                            params.user_segment_id = parseInt($('#mInternal .segments-select').val())
+                            console.log($('#mInternal .segments-select').val());
+                            createArticleObject(messageBoardInternal, params, 'maintenance');
+
                         }
                         if ($("#mExternal .gswitch input").prop('checked')) {
                             //submit external message to selected component section
+                            params['maintenanceName'] = thismodal.find("#maintenance-name").val();
                             params.maintenanceDetails = $("#mExternal textarea").val();
                             params['notifications'] = $("#mExEmailSubscribers").prop('checked');
                             params['sas_visibility'] = $("#mExShowHomepage").prop("checked");
-                            var itr = 0;
+                            params.user_segment_id = parseInt($('#mExternal .segments-select').val());
+                            console.log($('#mExternal .segments-select').val());
                             thismodal.find('.components-affected input[type="checkbox"]:checked').each(function() {
-                                itr++,
-                                addNewScheduledMaintenance($(this).val(), params,
-                                    (itr === compoCount && !$("#mInternal .gswitch input").prop('checked')));
+                                createArticleObject($(this).val(), params, 'maintenance');
                             })
+                        }
+                        $('.btn').removeAttr("disabled");
+                        $("#new-scheduled-maintenance-modal").fadeOut('fast');
+                        showLoadingAnimation();
+                        initPostMaintenanceRequest(postRequests, 0);
+
+                        function initPostMaintenanceRequest(reqArray, ndx) {
+                            console.log("\nRequest: ", reqArray[ndx]);
+                            if (ndx < reqArray.length - 1) {
+                                    initPostMaintenanceRequest(reqArray, ndx + 1);
+                                }
+                            // $.ajax(reqArray[ndx]).done(function(data) {
+                            //     console.log('Status: %c Success ', 'background:#222; color:#00ff00');
+                            //     if (reqArray[ndx].type.toLowerCase() !== "delete") console.log("Response: ", data);
+                            //     if (ndx < reqArray.length - 1) {
+                            //         initPostMaintenanceRequest(reqArray, ndx + 1);
+                            //     } else {
+                            //         viewLatest(data.article);
+                            //     }
+                            // }).fail(function(data) {
+                            //     console.log('Status: %c Error ', 'background:#222; color:#ff0000');
+                            //     console.log("Response", data);
+                            // })
+                        }
+
+                        function viewLatest(article) {
+                            $('#incident-' + article.section_id + ' .incident-list').html("");
+                            view_incident(article.id);
+                            postRequests = [];
                         }
                     }
                 }
             })
 
-            function addNewScheduledMaintenance(sect_id, params, final) {
-                if (params.globalnotif != "undefined" && params.globalnotif == true && sect_id == sas_internal) {
-                    $.ajax({
-                        url: '/api/v2/help_center/sections/' + sect_id + '/subscriptions.json',
-                        type: 'POST',
-                        data: {
-                            "subscription": {
-                                "source_locale": "en-us",
-                                "include_comments": true,
-                                "user_id": globalnotif_user_id
-                            }
-                        }
-                    })
-                };
-                var obj = new Object();
-                var article = new Object();
-                if (params.sas_visibility != "undefined" && params.sas_visibility == false && sect_id == sas) {
-                    var labels = ["Type:Maintenance", "Status:" + "New", "Name:" + params.maintenanceName, "Hidden"];
-                } else if (params.sas_visibility != "undefined" && params.sas_visibility == true && sect_id == sas) {
-                    var labels = ["Type:Maintenance", "Status:" + "New", "Name:" + params.maintenanceName, "ShowInHomepage"];
-                } else {
-                    var labels = ["Type:Maintenance", "Status:" + "New", "Name:" + params.maintenanceName];
-                }
-                var maintenanceStart = "Maintenance Start: " + params.startTime.date + " " + params.startTime.time + " ";
-                var maintenanceEnd = "Maintenance End: " + params.endTime.date + " " + params.endTime.time + " ";
-                article.title = params.maintenanceName + " " + " " + params.startTime.date;
-                article.body = "<strong>" + maintenanceStart + "</strong><br><strong>" + maintenanceEnd + "</strong><br><br>" + params.maintenanceDetails;
-                article.author_id = globalsupport_user_id;
-                obj.article = article;
-                obj.notify_subscribers = false;
-                obj.article.label_names = labels;
-                var obj_string = JSON.stringify(obj);
-                setTimeout(function() {
-                    $.ajax({
-                        url: "/api/v2/help_center/sections/" + sect_id + "/articles.json",
-                        method: "POST",
-                        data: obj_string,
-                        contentType: "application/json",
-                        error: function(e) {},
-                        success: function(e) {
-                            if (final) {
-                                $('.btn').removeAttr("disabled");
-                                $("#new-scheduled-maintenance-modal").fadeOut("fast");
-                                $('#incident-' + sect_id + ' .incident-list').html("");
-                                get_incident_list(sect_id);
-                            }
-                        }
-                    });
-                }, 500);
-                refresh = true;
-            }
             // Delete template
             $('.delete-template-btn').on("click", function() {
                 if (confirm("Delete this template?")) {
@@ -800,9 +849,10 @@ $(document).ready(function() {
                     $('.close-modal').click();
                 }
             })
+
             $('.incident-nav-cont').on("click", ".incident-nav-item:not(:last-child)", function(event) {
                 var section = $(this).children("span").text();
-                get_incident_list(section);
+                get_incident_list(section, 1);
                 $('.incident-list-cont').hide();
                 $('#incident-' + section).show();
                 $('.incident-nav-item').removeClass("incident-nav-item-active");
@@ -860,9 +910,9 @@ $(document).ready(function() {
                     $("#update-internal-message #send-comment-notif,#update-internal-message  .subscribe-global-notif").prop('checked', true);
                     $("#update-internal-message > div").fadeIn();
                 } else {
-                    $('#switch-internal').hide()
+                    /*$('#switch-internal').hide()
 
-                    $('#update-internal-message').append('<button class="addinternal"><span class="btn-stage">Add New Internal Message</span> </button>')
+                    $('#update-internal-message').append('<button class="addinternal"><span class="btn-stage">Add New Internal Message</span> </button>')*/
 
 
                     $("#update-internal-message #send-comment-notif,#update-internal-message  .subscribe-global-notif").prop('checked', false);
@@ -873,11 +923,11 @@ $(document).ready(function() {
                 $('#update-internal-message').append('<button class="internalClosebtn"><span> Close</span></button>')
                 $('.internalClosebtn').hide()
                 $('.addinternal').on("click", function() {
-               $('.internalClosebtn').show()
+                    $('.internalClosebtn').show()
                     var internalMessage = document.getElementById("internal-message-switch");
-                      internalMessage.disabled = false
+                    internalMessage.disabled = false
                     internalMessage.checked = true
-                    
+
                     $("#update-internal-message #send-comment-notif,#update-internal-message  .subscribe-global-notif").prop('checked', true);
 
                     $("#update-internal-message > div").fadeIn();
@@ -889,13 +939,9 @@ $(document).ready(function() {
                     $('#switch-internal').hide()
                     $('.internalClosebtn').remove()
                     $('.addinternal').show()
-                     $("#update-internal-message #send-comment-notif,#update-internal-message.subscribe-global-notif").prop('checked', false);
-                     $('.internalClosebtn').hide()
-                    //  $('.affected-component').remove()
-                    //  $('.component-container').remove()
-                    //  $('.modal-body2').remove()
-               
-                    })
+                    $("#update-internal-message #send-comment-notif,#update-internal-message.subscribe-global-notif").prop('checked', false);
+                    $('.internalClosebtn').hide();
+                })
 
             }
 
@@ -905,15 +951,15 @@ $(document).ready(function() {
                     $("#update-external-message #send-comment-notif,#update-external-message  .subscribe-global-notif").prop('checked', true);
                     $("#update-external-message > div").fadeIn();
                 } else {
-                    $('#switch-external').hide()
-                    $('#update-external-message').prepend('<button class="addexternal"><span class="btn-stage">Add New External Message</span> </button>')
+                    /*$('#switch-external').hide()
+                    $('#update-external-message').prepend('<button class="addexternal"><span class="btn-stage">Add New External Message</span> </button>')*/
                     $("#update-external-message #send-comment-notif,#update-external-message  .subscribe-global-notif").prop('checked', false);
 
                     $("#update-external-message > div").fadeOut();
                 }
                 $('.message-external').prepend('<button class="externalClosebtn"><span> Close</span></button>')
-                  $('.externalClosebtn').hide()
-             $('.addexternal').on("click", function() {
+                $('.externalClosebtn').hide()
+                $('.addexternal').on("click", function() {
                     $('.externalClosebtn').show()
                     $("#update-external-message > div").fadeIn();
                     var externalMessage = document.getElementById("external-message-switch");
@@ -921,38 +967,36 @@ $(document).ready(function() {
                     externalMessage.checked = true
                     var component = '<div class="component-container">';
                     for (var i = 0, len = allPlatforms.length; i < len; i++) {
-                        if(allPlatforms[i].id !== 360002990152){
-                            console.log(allPlatforms[i]);
+                        if (allPlatforms[i].id !== messageBoardInternal) {
                             var platform_name = allPlatforms[i].description.split("@", 1).toString();
-                            component += '<br/><div ="component"><input class="affected-component" align="left" type="checkbox" value= '+allPlatforms[i].id + '> <span>' +  platform_name+ '</span></div>';
-                            console.log(platform_name)
+                            component += '<br/><div ="component"><input class="affected-component" align="left" type="checkbox" value= ' + allPlatforms[i].id + '> <span>' + platform_name + '</span></div>';
                         }
                     }
-                    component +='</div>'
-                        $('#update-external-message').prepend(component);
+                    component += '</div>'
+                    $('#update-external-message').prepend(component);
                     $('#update-external-message').prepend('<div class="modal-body2"> <div class="modal-body-detail components-affected"> <label>Components Affected</label> <div class="component-container"> </div></div>')
-                        $('.modal-body2').prepend('<h1 style="font-size: 20px;font-weight: 400;">Messaging</h1><br><div class="modal-body-detail incident-name"> <label>Title</label> <br><input type="text" id="incident-name-external" name="" placeholder="Incident Title"><span class="info"></span> </div>')
-                      $("#update-external-message #send-comment-notif,#update-external-message.subscribe-global-notif").prop('checked', true);
-    
-                       $(".addexternal").hide()
+                    $('.modal-body2').prepend('<h1 style="font-size: 20px;font-weight: 400;">Messaging</h1><br><div class="modal-body-detail incident-name"> <label>Title</label> <br><input type="text" id="incident-name-external" name="" placeholder="Incident Title"><span class="info"></span> </div>')
+                    $("#update-external-message #send-comment-notif,#update-external-message.subscribe-global-notif").prop('checked', true);
+
+                    $(".addexternal").hide()
                     $('#switch-external').show()
 
-                         })
-                          $('.externalClosebtn').on("click", function() {
-                            $("#update-external-message > div").fadeOut();
-                            $('#switch-external').hide()
-                            $('.externalClosebtn').remove()
-                            $(".addexternal").show()
-                             $("#update-external-message #send-comment-notif,#update-external-message.subscribe-global-notif").prop('checked', false);
-                             $('.externalClosebtn').hide()
-                             $('.affected-component').remove()
-                             $('.component-container').remove()
-                             $('.modal-body2').remove()
-                       
-                            })
-                       }
+                })
+                $('.externalClosebtn').on("click", function() {
+                    $("#update-external-message > div").fadeOut();
+                    $('#switch-external').hide()
+                    $('.externalClosebtn').remove()
+                    $(".addexternal").show()
+                    $("#update-external-message #send-comment-notif,#update-external-message.subscribe-global-notif").prop('checked', false);
+                    $('.externalClosebtn').hide()
+                    $('.affected-component').remove()
+                    $('.component-container').remove()
+                    $('.modal-body2').remove()
 
-               $('#goto-messageBoard-admin').on("click", function() {
+                })
+            }
+
+            $('#goto-messageBoard-admin').on("click", function() {
                 $('#back-incident-list').click();
                 $('.message-board-container').css('left', '20%');
                 $('html').css('overflow', 'hidden');
@@ -964,10 +1008,13 @@ $(document).ready(function() {
                 $('.incident-container').hide();
                 $('.container').show();
             });
+
             $('#create-platform-btn').on("click", function(event) {
                 $('body').append('<div class="modal" id="create-platform-modal"> <div class="modal-content"> <div class="modal-header"><button class="close close-modal">X</button><h1>Create New Platform </h1></div> <div class="modal-body"><div class="modal-body-detail platform-name"><label>Platform Name</label><br><input type="text" placeholder="Platform Name"> <span class="info"> </span> </div> <div class="modal-body-detail platform-display-name"><label>Display Name</label><br><input type="text" placeholder="Display Name"><span class="info"></span></div><div class="modal-body-detail platform-user-segment"><label>User Segment</label><br><select><option value="">Visible to everyone</option><option value="526223">Signed-in users</option><option value="526203">Agents and managers</option></select><span class="info">User segments are groups of users who can view content in your Status Page.</span></div></div><div class="modal-footer"><button class="btn btn-primary" id="create-new-platform">CREATE PLATFORM </button></div></div></div>'),
                     $('#create-platform-modal').fadeIn("fast")
             });
+
+            //when a user click DELETE button.
             $('.incident-container').on("click", ".incident-item-delete, #incident-item-delete", function(event) {
                 var $currentArticle = $(this);
                 var incident = $currentArticle.parent().find(".hide").text();
@@ -979,13 +1026,13 @@ $(document).ready(function() {
                     dataType: 'json'
                 }).done(function(data) {
                     var labels = data.article.label_names;
-                    labels.forEach(function(label) {
-                        if (label.includes("RelatedIncidents")) {
-                            message2 += "\n\n" + message;
-                            message = message2;
-                        }
-                    })
+
+                    if (labels.toString().includes("RelatedIncidents:")) {
+                        message2 += "\n\n" + message;
+                        message = message2;
+                    }
                     if (confirm(message)) {
+                        console.log('%c Delete Incident ', 'background:#ef4a5b; color:#ffffff;font-size:15px;');
                         $.ajax({
                             url: '/api/v2/help_center/articles/' + incident + '.json',
                             type: 'DELETE'
@@ -995,6 +1042,8 @@ $(document).ready(function() {
                     }
                 })
             });
+
+
             $('.incident-container').on("click", ".incident-item-archive", function(event) {
                 var incident = $(this).closest("div").find("span.hide").text();
                 if ($(this).text() == "Archive") {
@@ -1083,7 +1132,7 @@ $(document).ready(function() {
                         var section = $('.incident-nav-item-active').children("span").text();
                         setTimeout(function() {
                             $('#incident-' + section + ' .incident-list').html("");
-                            get_incident_list(section);
+                            get_incident_list(section, 1);
                         }, 1000);
                         refresh = true;
                     } else {
@@ -1099,6 +1148,7 @@ $(document).ready(function() {
                 var incident_id = $(this).parent().find(".hide").text();
                 view_incident(incident_id);
             });
+
             $('.incident-view-page').on("click", "#update-incident-btn", function(event) {
                 if ($('.incident-nav-item.incident-nav-item-active span').text() === '360002990152') {
                     $('#updateMessage').css('background-color', '#FFFDF6');
@@ -1106,6 +1156,7 @@ $(document).ready(function() {
                     $('#updateMessage').css('background-color', '#FFFDF6');
                 }
             });
+
             $('.incident-view-page, .incident-container').on("click", "#update-incident-btn", function(event) {
                 $(this).attr('disabled', 'disabled');
                 var incidentID = $(this).children('.hide').text(),
@@ -1114,12 +1165,12 @@ $(document).ready(function() {
                     relatedIncidentCheckbox = "",
                     relatedIncidentList = [],
                     hasRelatedIncidents = true;
-                $.get('https://support.sizmek.com/api/v2/help_center/en-us/articles/' + incidentID).done(function(data) {
+                $.get('/api/v2/help_center/en-us/articles/' + incidentID).done(function(data) {
                     currentSec = data.article.section_id;
                     label = data.article.label_names,
                         labelLength = label.length,
                         title = data.article.title;
-                    if (data.article.section_id === sas_internal) {
+                    if (data.article.section_id === messageBoardInternal) {
                         currentInternalIncidentID = incidentID;
                         currentInternalIncidentTitle = title;
                     }
@@ -1168,9 +1219,9 @@ $(document).ready(function() {
                     function instantiateDOM() {
                         relatedIncidentList.forEach(function(data) {
                             var j = data.section_id;
-                            section = j === 360000037612 ? "MDX 2.0" : j === 202580163 ? "Sizmek Advertising Suite" : j === 360000037572 ? "DSP" : j === 360000041291 ? "DMP" : j === 360002990152 ? "Internal" : "";
+                            section = j === messageBoardMDX ? "MDX 2.0" : j === messageBoardSAS ? "Sizmek Advertising Suite" : j === messageBoardDSP ? "DSP" : j === messageBoardDMP ? "DMP" : j === messageBoardSiteOP ? "Site Optimization" : j === messageBoardInternal ? "Internal" : "";
                             htmlElementIncident += '<div class="incident-item-action" id="related-incident"><a class="incident-item-view" href="/hc/en-us/articles/' + data.id + '" id="related-incident-span">' + section + '</a><span>' + data.id + '</span></div>';
-                            section != "Internal" ? relatedIncidentCheckbox += '<div class="component"><input class="affected-component-' + j + '" type="checkbox" value="' + data.id + '" checked><span>' + section + '</span><span id="incident-title" style="display:none;">' + data.title + '</span></div>' : currentInternalIncidentID = data.id, currentInternalIncidentTitle = data.title;
+                            section != "Internal" ? relatedIncidentCheckbox += '<div class="component"><input type="checkbox" value="' + data.id + '" checked><span>' + section + '</span><span class="platform-id" id="' + j + '"></span><span id="incident-title" style="display:none;">' + data.title + '</span></div>' : currentInternalIncidentID = data.id, currentInternalIncidentTitle = data.title;
                             if (relatedIncidentList.length === 1 && section == "Internal") {
                                 relatedIncidentCheckbox = "";
                             }
@@ -1184,7 +1235,10 @@ $(document).ready(function() {
                 });
 
                 function openModal(title) {
-                    $('body').append('<div class="modal" id="update-incident-modal"><div class="modal-content"><div class="modal-header"><button class="close close-modal">X</button><h1>Update Incident Status</h1></div> <div class="modal-body"> <div class="modal-body-detail"><label>Incident Status</label> <div class="status-choices"> <input type="radio" id="sc1" name="status-choices" value="Investigating"> <label class="radio-label" for="sc1">Investigating</label> <input type="radio" id="sc2" name="status-choices" value="Identified"><label class="radio-label" for="sc2">Identified </label> <input type="radio" id="sc3" name="status-choices" value="Monitoring"> <label class="radio-label" for="sc3">Monitoring</label> <input type="radio" id="sc4" name="status-choices" value="Resolved"> <label class="radio-label" for="sc4">Resolved </label> </div> </div><div class="modal-body-detail incident-severity"><label>Incident Severity</label><br><select><option value="1">Operational</option><option value="3">Degraded Performance</option><option value="4">Minor Outage</option><option value="5">Major Outage</option></select></div><div id="update-internal-message" class="modal-body-detail" style="padding: 20px;border: 1px solid #ababab;border-radius: 5px; background-color:#fffdf6;"> <label style="margin-bottom: 10px;font-size:18px;">Internal Message </label><label class="gswitch" id="switch-internal"><input type="checkbox" id="internal-message-switch"><span class="gslider round"></span></label><div class="modalOptions" style="clear: both; display: block;margin-bottom:30px">Send alert to subscribers<label class="gswitch"><input type="checkbox" id="send-comment-notif"><span class="gslider round green"></span></label></div><textarea id="update-incident-body-internal" class="message-internal" placeholder="Message"></textarea> </div><div class="components-affected-update"></div><div id="no-internal-incident"class="modal-body-detail" style="padding: 20px;border: 1px solid #ababab;border-radius: 5px; background-color:#F5FDFE;display:none;"> <label style="margin-bottom: 10px;font-size:18px;">No Related Internal Incident</label></div><div id="update-external-message" class="message-external" class="modal-body-detail" style="padding: 20px;border: 1px solid #ababab;border-radius: 5px; background-color:#F5FDFE; margin-top:20px;"> <label style="margin-bottom: 10px;font-size:18px;">External Message </label><label class="gswitch" id="switch-external" style="margin-top:-40px !important;"><input type="checkbox" id="external-message-switch"><span class="gslider round"></span></label><div class="modalOptions" style="clear: both; display: block;margin-bottom:30px;">Send alert to subscribers<label class="gswitch"><input type="checkbox" id="send-comment-notif"><span class="gslider round green"></span></label></div><textarea id="update-incident-body-external" placeholder="Message"></textarea> </div></div><div class="modal-footer"><button class="btn btn-primary" id="update-incident-status">UPDATE STATUS<span class="hide">' + incidentID + '</span><span id="incident-title" style="display:none;">' + title + '</span></button></div></div></div>');
+                    $('body').append('<div class="modal" id="update-incident-modal"><div class="modal-content"><div class="modal-header"><button class="close close-modal">X</button><h1>Update Incident Status</h1></div> <div class="modal-body"> <div class="modal-body-detail"><label>Incident Status</label> <div class="status-choices"> <input type="radio" id="sc1" name="status-choices" value="Investigating"> <label class="radio-label" for="sc1">Investigating</label> <input type="radio" id="sc2" name="status-choices" value="Identified"><label class="radio-label" for="sc2">Identified </label> <input type="radio" id="sc3" name="status-choices" value="Monitoring"> <label class="radio-label" for="sc3">Monitoring</label> <input type="radio" id="sc4" name="status-choices" value="Resolved"> <label class="radio-label" for="sc4">Resolved </label> </div> </div><div class="modal-body-detail incident-severity"><label>Incident Severity</label><br><select><option value="1">Operational</option><option value="3">Degraded Performance</option><option value="4">Minor Outage</option><option value="5">Major Outage</option></select></div><div id="update-internal-message" class="modal-body-detail" style="padding: 20px;border: 1px solid #ababab;border-radius: 5px; background-color:#fffdf6;"> <label style="margin-bottom: 10px;font-size:18px;">Internal Message </label><label class="gswitch" id="switch-internal"><input type="checkbox" id="internal-message-switch"><span class="gslider round"></span></label><div class="modalOptions" style="clear: both; display: block;margin-bottom:30px">Send alert to subscribers<label class="gswitch"><input type="checkbox" id="send-comment-notif"><span class="gslider round green"></span></label></div><textarea id="update-incident-body-internal" class="message-internal" placeholder="Message"></textarea> </div><div class="components-affected-update"></div><div id="no-internal-incident"class="modal-body-detail" style="padding: 20px;border: 1px solid #ababab;border-radius: 5px; background-color:#F5FDFE;display:none;"> <label style="margin-bottom: 10px;font-size:18px;">No Related Internal Incident</label></div><div id="update-external-message" class="modal-body-detail message-external" style="padding: 20px;border: 1px solid #ababab;border-radius: 5px; background-color:#F5FDFE; margin-top:20px;"> <label style="margin-bottom: 10px;font-size:18px;">External Message </label><label class="gswitch" id="switch-external"><input type="checkbox" id="external-message-switch"><span class="gslider round"></span></label><div class="modalOptions" style="clear: both; display: block;margin-bottom:30px;">Send alert to subscribers<label class="gswitch"><input type="checkbox" id="send-comment-notif"><span class="gslider round green"></span></label></div><textarea id="update-incident-body-external" placeholder="Message"></textarea> </div></div><div class="modal-footer"><button class="btn btn-primary" id="update-incident-status">UPDATE STATUS<span class="hide">' + incidentID + '</span><span class="current-platform-id" id="' + currentSec + '"></span><span id="incident-title" style="display:none;">' + title + '</span></button></div></div></div>');
+                    var segmentUpdate = '<div class="segments-container"><label for="segments-select">Visible To</label>'+getUserSegmentsSelect()+' </div>'
+                    $(segmentUpdate).insertAfter('#switch-internal');
+                    $(segmentUpdate).insertAfter('#switch-external');
                     $("#update-internal-message .gswitch input, #update-external-message .gswitch input").prop('checked', true);
                     $('html').css('overflow', 'hidden');
                     $('#update-incident-modal').fadeIn("fast");
@@ -1220,11 +1274,7 @@ $(document).ready(function() {
                             $('#update-incident-message-modal').fadeIn("fast");
                         }, 100);
                     })
-                    if (platform == sas_internal) {
-
-                        if (!($('#globalNoficationLabel').is(':visible'))) {
-                            $('<div id="globalNoficationLabel" ><label style="margin-bottom: 10px;font-size:18px;">Global Notifications </label><div class="modal-body-detail global-notifications" style="clear: both; display: block;margin-bottom:30px">Subscribe globalnotifications@sizmek.com.<label class="gswitch"><input type="checkbox" class="subscribe-global-notif"><span class="gslider round green"></span></label></div></div>').insertAfter('.modalOptions');
-                        }
+                    if (platform == messageBoardInternal) {
                         $('.modal-body-detail.global-notifications .gswitch input').prop('checked', true);
                         $('#updateMessage').css('background-color', '#FFFDF6');
 
@@ -1258,9 +1308,6 @@ $(document).ready(function() {
                 }
             });
 
-
-
-
             $('.incident-view-page').on("click", "#update-incident-btn", function(event) {
                 if ($('.incident-nav-item.incident-nav-item-active span').text() === '360002990152') {
                     $('#updateMessage').css('background-color', '#FFFDF6');
@@ -1268,6 +1315,7 @@ $(document).ready(function() {
                     $('#updateMessage').css('background-color', '#FFFDF6');
                 }
             });
+
             $('.incident-view-page, .incident-container').on("click", "#update-maintenance-btn", function(event) {
                 var incident = $(this).children(".hide").text(),
                     platform = $(this).children("#platform_id").text(),
@@ -1288,9 +1336,6 @@ $(document).ready(function() {
                 })
                 $('#update-incident-modal .maintenance-start .time-select').val(start_date[1]);
                 $('#update-incident-modal .maintenance-end .time-select').val(end_date[1]);
-                if (platform == sas_internal) {
-                    $('#update-incident-modal .maintenance-end').after('<div class="modal-body-detail global-notifications"><label>Global Notifications</label><br><input type="checkbox" checked class="subscribe-global-notif" id="subsribe-global-notifications"><span class="checkbox-label">Subscribe globalnotifications@sizmek.com.</span></div>')
-                }
             });
             $('body').on("change", "#send-time", function() {
                 if ($(this).is(":checked")) {
@@ -1334,153 +1379,181 @@ $(document).ready(function() {
                 });
             });
 
-            function getIncidentTitle(incidentID) {
-                return $.get('/api/v2/help_center/articles/' + incidentID + '/translations.json');
-            }
+            //when user click the update status of maintenance
             $('body').on('click', '#update-maintenance-status', function() {
+                console.log('%c Update Maintenance ', 'background:#006dcc; color:#ffffff;font-size:15px;');
                 $(this).attr('disabled', 'disabled');
                 var maintenanceID = $(this).children('.hide').text();
+                var platfromID = $('#platform_id').text()
                 var body = $('#update-incident-body').val();
                 var notifySubscribers = $('#send-comment-notif').is(':checked');
                 var newStatus = $('.status-choices input[name=status-choices]:checked').val();
-                $.get('/api/v2/help_center/articles/' + maintenanceID + '/labels.json').done(function(labels) {
-                    for (var ndx = 0; ndx < labels.labels.length; ndx++) {
-                        if (labels.labels[ndx].name.indexOf('Status') > -1) {
-                            $.ajax({
-                                url: '/api/v2/help_center/articles/' + maintenanceID + '/labels/' + labels.labels[ndx].id + '.json',
-                                type: 'DELETE'
-                            });
-                            break;
-                        }
+                var maintenanceAjaxRequests = [];
+                maintenanceAjaxRequests.push(subscribeGlobalNotification(platfromID));
+                $('#update-incident-modal').hide();
+
+                //if Update time checkbox is checked
+                if ($('#send-time').prop('checked')) {
+                    var maintenanceStart = {},
+                        maintenanceEnd = {},
+                        $updateModal = $('#update-incident-modal');
+                    maintenanceStart.date = $updateModal.find(".maintenance-start input[type='date']").val();
+                    maintenanceStart.time = $updateModal.find(".maintenance-start .time-select").val();
+                    maintenanceEnd.date = $updateModal.find(".maintenance-end input[type='date']").val();
+                    maintenanceEnd.time = $updateModal.find(".maintenance-end .time-select").val();
+                    var maintenanceStartFormat = "Maintenance Start: " + maintenanceStart.date + " " + maintenanceStart.time + " ";
+                    var maintenanceEndFormat = "Maintenance End: " + maintenanceEnd.date + " " + maintenanceEnd.time + " ";
+                    body = "<strong>" + maintenanceStartFormat + "</strong><br><strong>" + maintenanceEndFormat + "</strong><br><br>" + body;
+                }
+
+                showLoadingAnimation();
+
+                function deleteMaintenanceLabel(label) {
+                    return {
+                        url: '/api/v2/help_center/articles/' + maintenanceID + '/labels/' + label.id + '.json',
+                        type: 'DELETE'
                     }
-                    $.ajax({
+                }
+
+                function addMaintenanceLabel(labelName) {
+                    return {
                         url: '/api/v2/help_center/articles/' + maintenanceID + '/labels.json',
                         type: 'POST',
                         data: {
                             "label": {
-                                "name": "Status:" + newStatus
+                                "name": labelName
                             }
                         }
-                    });
-                });
-                $.ajax({
-                    url: '/api/v2/help_center/articles/' + maintenanceID + '/comments.json',
-                    type: 'POST',
-                    data: {
-                        "comment": {
-                            "body": newStatus + " - " + body,
-                            "author_id": globalsupport_user_id,
-                            "locale": "en-us"
-                        },
-                        "notify_subscribers": notifySubscribers
                     }
-                }).done(function() {
-                    $('#update-incident-modal').fadeOut(500);
-                    view_incident(maintenanceID);
-                })
-                if ($("#subsribe-global-notifications").is(":checked")) {
-                    $.ajax({
-                        url: '/api/v2/help_center/sections/' + maintenanceID + '/subscriptions.json',
+                }
+
+                function addMaintenanceComment() {
+                    return {
+                        url: '/api/v2/help_center/articles/' + maintenanceID + '/comments.json',
                         type: 'POST',
                         data: {
-                            "subscription": {
-                                "source_locale": "en-us",
-                                "include_comments": true,
-                                "user_id": globalnotif_user_id
-                            }
+                            "comment": {
+                                "body": newStatus + " - " + body,
+                                "author_id": globalsupport_user_id,
+                                "locale": "en-us"
+                            },
+                            "notify_subscribers": notifySubscribers
                         }
-                    });
+                    }
                 }
+
+                function initMaintenanceRequests(arrReqs, idx) {
+                    console.log("\nRequest: ", arrReqs[idx]);
+                    $.ajax(arrReqs[idx]).done(function(data) {
+                        console.log('Status: %c Success ', 'background:#222; color:#00ff00');
+                        if (arrReqs[idx].type.toLowerCase() !== "delete") console.log("Response: ", data);
+                        if (idx < arrReqs.length - 1) {
+                            initMaintenanceRequests(arrReqs, idx + 1);
+                        } else {
+                            viewLatestMaintenance();
+                        }
+                    }).fail(function(data) {
+                        console.log('Status: %c Error ', 'background:#222; color:#ff0000');
+                        console.log("Response", data);
+                    })
+                }
+
+                function viewLatestMaintenance() {
+                    view_incident(maintenanceID);
+                }
+                console.log("\nRequest: ", '/api/v2/help_center/articles/' + maintenanceID + '/labels.json');
+                $.get('/api/v2/help_center/articles/' + maintenanceID + '/labels.json').done(function(labels) {
+                    console.log('Status: %c Success ', 'background:#222; color:#00ff00');
+                    console.log("Response: ", labels);
+                    for (var ndx = 0; ndx < labels.labels.length; ndx++) {
+                        if (labels.labels[ndx].name.indexOf('Status') > -1) {
+                            maintenanceAjaxRequests.push(deleteMaintenanceLabel(labels.labels[ndx]));
+                            break;
+                        }
+                    }
+                    maintenanceAjaxRequests.push(addMaintenanceLabel("Status:" + newStatus));
+                    maintenanceAjaxRequests.push(addMaintenanceComment());
+                    initMaintenanceRequests(maintenanceAjaxRequests, 0);
+                }).fail(function(data) {
+                    console.log('Status: %c Error ', 'background:#222; color:#ff0000');
+                    console.log("Response", data);
+                })
             })
+
+            //when UPDATE STATUS button is clicked.
             $('body').on("click", "#update-incident-status", function(event) {
+                console.log('%c Update Incident ', 'background:#006dcc; color:#ffffff;font-size:15px;');
                 var $currentIncident = $(this);
                 $currentIncident.attr("disabled", "disabled").addClass("wait");
                 num_Incidents = 0;
                 incidentsUpdated = 0;
+                var currentPlatfromID = $currentIncident.children('.current-platform-id').attr('id');
                 var modal = $('.modal-body');
                 var incidentID = $(this).find("span.hide").text();
                 var thismodal = $(this).closest('.modal');
                 var param = [];
                 var myString = currentInternalIncidentTitle;
                 var myString2 = myString.substr("]");
-               var myString3 = myString2.substr(myString.indexOf(']')+1);
+                var myString3 = myString2.substr(myString.indexOf(']') + 1);
 
-                param['incidentName'] =myString3 ;
-                param['incidentStatus'] = thismodal.find('.status-choices input[type="radio"]:checked').val()
-                var componentsCunt  = thismodal.find('.component-container input[type="checkbox"]:checked').length;
-                 param['platformname'] = myString3;
-                        var intIncidentNameExternal = myString3
-                    thismodal.find('.component-container input[type="checkbox"]:checked').siblings("span").each(function(){
-                        
-                          })
-                              param['incidentName'] = intIncidentNameExternal;
-                              param['message'] = $("#update-incident-body-external").val();
-                              console.log(param.incidentName)
-                              incidentIDs.push(parseInt(incidentID));
-                                
-                            
-                              var loops = 0;
-                                thismodal.find('.component-container input[type="checkbox"]:checked').each(function() {
-                                
-                                    console.log($(this))
-                                    loops++,
-                                    createIncident($(this).val(),param,
-                                    (loops === componentsCunt && !$("#iExternal .gswitch input").prop('checked')));
-                                    
-                                })
-     if ($("#internal-message-switch").is(':checked')) {
-                    updateIncident(currentInternalIncidentID, currentInternalIncidentTitle, true);
+                param['incidentName'] = myString3;
+                param['incidentStatus'] = thismodal.find('.status-choices input[type="radio"]:checked').val();
+                //var componentsCunt = thismodal.find('.component-container input[type="checkbox"]:checked').length;
+                param['platformname'] = myString3;
+                var intIncidentNameExternal = myString3
+                thismodal.find('.component-container input[type="checkbox"]:checked').siblings("span").each(function() {
+
+                })
+                param['incidentName'] = intIncidentNameExternal;
+                param['message'] = $("#update-incident-body-external").val();
+                incidentIDs.push(parseInt(incidentID));
+
+                /*var loops = 0;
+                thismodal.find('.component-container input[type="checkbox"]:checked').each(function() {
+                    loops++,
+                    createIncident($(this).val(), param,
+                        (loops === componentsCunt && !$("#iExternal .gswitch input").prop('checked')));
+                })**/
+
+                if ($("#internal-message-switch").is(':checked')) {
+                    updateIncident(currentInternalIncidentID, currentInternalIncidentTitle, messageBoardInternal);
                     num_Incidents++;
                 }
+
                 if ($('#external-message-switch').is(':checked')) {
                     num_Incidents += $('.modal-body').find('.components-affected-update input[type="checkbox"]:checked').length;
                     modal.find('.components-affected-update input[type="checkbox"]:checked').each(function() {
-                        updateIncident($(this).val(), $(this).parent().find('#incident-title').text(), false);
+                        var platformID = $(this).parent().children('.platform-id').attr('id');
+                        updateIncident($(this).val(), $(this).parent().find('#incident-title').text(), platformID);
                     });
-                    incidentID != currentInternalIncidentID && (updateIncident(incidentID, $(this).find('#incident-title').text(), false), num_Incidents++);
+                    incidentID != currentInternalIncidentID && (updateIncident(incidentID, $(this).find('#incident-title').text(), currentPlatfromID), num_Incidents++);
                 }
 
-                function updateIncident(incident, incidentTitle, isInternal) {
+                function updateIncident(incident, incidentTitle, sectionID) {
                     var severity = $('#update-incident-modal:visible .incident-severity select').val();
                     var in_status = $('.status-choices input[name=status-choices]:checked').val();
-                    var mes_body = $('#update-incident-body-external').val();
-                    var notif = $('input[type="checkbox"]#send-comment-notif').is(":checked");
+                    var notif = $('#update-external-message input[type="checkbox"]#send-comment-notif').is(":checked"),
+                        mes_body = $('#update-incident-body-external').val(),
+                        userSegment = $('#update-external-message .segment-select').val();
+                    if (sectionID == messageBoardInternal) {
+                        notif = $('#update-internal-message input[type="checkbox"]#send-comment-notif').is(":checked");
+                        mes_body = $('#update-incident-body-internal').val();
+                        userSegment = $('#update-internal-message .segment-select').val();
+                    }
+
                     var title = incidentTitle;
-                    var noStatus = false,
-                        noSeverity = false;
-                    if (isInternal) {
-                        mes_body = $('#update-incident-body-internal').val(); 
-                    }
-                      var up_title = title.substr(title.indexOf("] ") + 1);
-                    if ($('#send-time').is(":visible") && $('#send-time').is(":checked")) {
-                        var maintenance_start = $('#update-incident-modal .maintenance-start input[type="date"]').val() + " " + $('#update-incident-modal .maintenance-start select').val();
-                        var maintenance_end = $('#update-incident-modal .maintenance-end input[type="date"]').val() + " " + $('#update-incident-modal .maintenance-end select').val();
-                        var body = in_status + " - <strong>Maintenance Start: " + maintenance_start + "</strong><br><strong>Maintenance End: " + maintenance_end + "</strong><br><br>" + mes_body;
-                    } else {
-                        var body = in_status + ":<br><br>" + mes_body;
-                    }
+                    var up_title = title.substr(title.indexOf("] ") + 1);
+                    var body = in_status + ":<br><br>" + mes_body;
+
                     if (in_status == undefined) {
                         alert("Please select status.");
                         $currentIncident.removeAttr("disabled");
-                        return false
+                        return false;
                     }
+                    var ajaxRequests = [];
 
-
-
-                    if ($("#update-incident-modal .global-notifications input.subscribe-global-notif").is(":checked")) {
-                        $.ajax({
-                            url: '/api/v2/help_center/sections/' + incident + '/subscriptions.json',
-                            type: 'POST',
-                            data: {
-                                "subscription": {
-                                    "source_locale": "en-us",
-                                    "include_comments": true,
-                                    "user_id": globalnotif_user_id
-                                }
-                            }
-                        });
-                    }
-                    $.ajax({
+                    ajaxRequests.push(subscribeGlobalNotification(sectionID))
+                    ajaxRequests.push({
                         url: '/api/v2/help_center/articles/' + incident + '/translations/en-us.json',
                         type: 'PUT',
                         data: {
@@ -1489,79 +1562,114 @@ $(document).ready(function() {
                             }
                         }
                     });
-                    $.get('/api/v2/help_center/articles/' + incident + '/labels.json').done(function(labels) {
-                        for (var q = 0; q < labels.labels.length; q++) {
-                            (function(x) {
-                                var label = labels.labels[x].name;
-                                if (label.indexOf("Status:") > -1 && !(label.includes(in_status))) {
-                                    noStatus = true;
-                                    $.ajax({
-                                        url: '/api/v2/help_center/articles/' + incident + '/labels/' + labels.labels[x].id + '.json',
-                                        type: 'DELETE'
-                                    });
-                                }
-                                if (label.indexOf("Severity:") > -1 && !(label.includes(severity))) {
-                                    noSeverity = true;
-                                    $.ajax({
-                                        url: '/api/v2/help_center/articles/' + incident + '/labels/' + labels.labels[x].id + '.json',
-                                        type: 'DELETE'
-                                    });
-                                }
-                                if (x + 1 === labels.labels.length) {
-                                    setTimeout(function() {
-                                        if (noStatus) {
-                                            $.ajax({
-                                                url: '/api/v2/help_center/articles/' + incident + '/labels.json',
-                                                type: 'POST',
-                                                data: {
-                                                    "label": {
-                                                        "name": "Status:" + in_status
-                                                    }
-                                                }
-                                            });
-                                        }
-                                        if (noSeverity) {
-                                            $.ajax({
-                                                url: '/api/v2/help_center/articles/' + incident + '/labels.json',
-                                                type: 'POST',
-                                                data: {
-                                                    "label": {
-                                                        "name": "Severity:" + severity
-                                                    }
-                                                }
-                                            });
-                                        }
-                                    }, 500);
-                                    var postComment = $.ajax({
-                                        url: '/api/v2/help_center/articles/' + incident + '/comments.json',
-                                        type: 'POST',
-                                        data: {
-                                            "comment": {
-                                                "body": body,
-                                                "author_id": globalsupport_user_id,
-                                                "locale": "en-us"
-                                            },
-                                            "notify_subscribers": notif
-                                        }
-                                    });
-                                    postComment.done(function() {
-                                        incidentsUpdated++;
-                                        if (incidentsUpdated === num_Incidents) {
-                                            view_incident(incidentID);
-                                        }
-                                        $(this).removeAttr("disabled");
-                                        if ($('.messageBoard .incident-view-page').is(':visible')) {
-                                            return false;
-                                        } else {
-                                            $('html').css('overflow', 'auto');
-                                        }
-                                    });
-                                }
-                            })(q);
+
+                    function deleteLabel(label) {
+                        return {
+                            url: '/api/v2/help_center/articles/' + incident + '/labels/' + label.id + '.json',
+                            type: 'DELETE'
                         }
-                    });
+
+                    }
+
+                    function addUserSegment(){
+                        return {
+                            url: '/api/v2/help_center/articles/' + incident + '/translations/en-us.json',
+                            type: 'PUT',
+                            data: {
+                                "article": {
+                                    "user_segement_id": parseInt(userSegment)
+                                }
+                            }
+                        }
+                    }  
+
+                    function addLabel(labelName) {
+                        return {
+                            url: '/api/v2/help_center/articles/' + incident + '/labels.json',
+                            type: 'POST',
+                            data: {
+                                "label": {
+                                    "name": labelName
+                                }
+                            }
+                        }
+                    }
+
+                    function addComment(body) {
+                        return {
+                            url: '/api/v2/help_center/articles/' + incident + '/comments.json',
+                            type: 'POST',
+                            data: {
+                                "comment": {
+                                    "body": body,
+                                    "author_id": globalsupport_user_id,
+                                    "locale": "en-us"
+                                },
+                                "notify_subscribers": notif
+                            }
+                        }
+                    }
+
+                    function initRequests(arrReqs, idx) {
+                        console.log("\nRequest: ", arrReqs[idx]);
+                        $.ajax(arrReqs[idx]).done(function(data) {
+                            console.log('Status: %c Success ', 'background:#222; color:#00ff00');
+                            if (arrReqs[idx].type.toLowerCase() !== "delete") console.log("Response: ", data);
+                            if (idx < arrReqs.length - 1) {
+                                initRequests(arrReqs, idx + 1);
+                            } else {
+                                endReq();
+                            }
+                        }).fail(function(data) {
+                            console.log('Status: %c Error ', 'background:#222; color:#ff0000');
+                            console.log("Response", data);
+                        })
+
+                    }
+
+                    function endReq() {
+                        incidentsUpdated++;
+                        if (incidentsUpdated === num_Incidents) {
+                            view_incident(incidentID);
+                        }
+                        $currentIncident.removeAttr("disabled");
+                        if ($('.messageBoard .incident-view-page').is(':visible')) {
+                            return false;
+                        } else {
+                            $('html').css('overflow', 'auto');
+                        }
+                    }
+                    $('#update-incident-modal').css('display', 'none');
+                    showLoadingAnimation();
+                    console.log("\nRequest: ", '/api/v2/help_center/articles/' + incident + '/labels.json');
+                    $.get('/api/v2/help_center/articles/' + incident + '/labels.json').done(function(labels) {
+                        console.log('Status: %c Success ', 'background:#222; color:#00ff00');
+                        console.log("Response: ", labels);
+                        for (var q = 0; q < labels.labels.length; q++) {
+
+                            var label = labels.labels[q];
+
+                            if (label.name.indexOf("Status:") > -1 && !(label.name.includes(in_status))) {
+                                ajaxRequests.push(deleteLabel(label));
+                                ajaxRequests.push(addLabel("Status:" + in_status));
+                            }
+
+                            if (label.name.indexOf("Severity:") > -1 && !(label.name.includes(severity))) {
+                                ajaxRequests.push(deleteLabel(label));
+                                ajaxRequests.push(addLabel("Severity:" + severity));
+                            }
+                        }
+                        ajaxRequests.push(addUserSegment());
+                        ajaxRequests.push(addComment(body));
+                        initRequests(ajaxRequests, 0);
+                    }).fail(function(err) {
+                        console.log('Status: %c Fail ', 'background:#222; color:#ff0000');
+                        console.log("Response", err);
+                    })
                 }
             });
+
+
             $('#create-incident-template-btn').on("click", function(event) {
                 $(this).attr("disabled", "disabled");
                 var template_name = $('#new-incident-template-modal .template-name input').val();
@@ -1974,8 +2082,14 @@ $(document).ready(function() {
                 $(this).closest(".modal").fadeOut("fast");
             });
             $('#new-incident-template').on("click", function() {
+          
                 cleanModal();
-                $('#new-incident-template-modal').fadeIn("fast");
+                $('#new-incident-template-modal').fadeIn("fast");       
+                var body = $(this).closest(".incident-list-item").children(".incident-item-cont").children("span.hide").html();
+                var time = '';
+            $('#new-incident-template-modal .modal-body').append('<div class="modal-body-detail incident-message"> <label>Message Body </label> <br> <textarea placeholder="Message" style="margin-top: 0px; margin-bottom: 0px; height: 80px; visibility: hidden; display: none;"> </textarea> </div>');
+            CKEDITOR.append('#new-incident-template-modal .modal-body')
+           
             });
             $('#new-maintenance-template').on("click", function() {
                 cleanModal();
@@ -1987,264 +2101,216 @@ $(document).ready(function() {
                 $('.incident-lists-item div:contains("' + search + '")').show();
             });
 
-            function getCurrentIncidents(section) {
-                if (section == 360000037612) {
-                    return mdxIncidents;
-                } else if (section == 202580163) {
-                    return sasIncidents;
-                } else if (section == 360000037572) {
-                    return dspIncidents;
-                } else if (section == 360000041291) {
-                    return dmpIncidents;
-                } else if (section == 360002974512) {
-                    return siteOptimization;
-                } else if (section == 360002990152) {
-                    return internalIncidents;
+            function getUserSegmentName(userSegmentID){
+                if(userSegmentID){
+                     for(var x = 0, len = userSegments.length;x < len;x++){
+                        if(userSegments[x].id == userSegmentID){
+                            return userSegments[x].name;
+                        }
+                    }
+                }
+                return 'Everyone';
+            }
+            //add loading animation on click of pagination
+            function addSpinner(section, index){
+                index++;
+                var $currentPage = $('#incident-' + section + ' .incident-list .pagination').children('li').get(index);
+                $($currentPage).children('a').text('').css('padding','0px 7px');
+                $($currentPage).children('a').append('<div class="spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div>')
+            }
+            //add Pagination to the selected platform
+            function addPagination(section, page, pageCount){
+                var disableFirst = "";
+                var disableLast = "";
+                if(page == 1){
+                    disableFirst = "disabled";
+                }
+                if(page == pageCount){
+                    disableLast = "disabled";
+                }
+                var pagination = '<div><ul class="pagination" style="width:' + getPaginationWidth(pageCount) + '% !important;"><li class="page-item ' + disableFirst + ' relative first-button"><a class="page-link" aria-label="First"><span aria-hidden="true">&laquo;</span></a></li><li class="page-item ' + disableFirst + ' relative previous-button"><a class="page-link" aria-label="Previous"><span aria-hidden="true">‹</span></a></li>';
+                var startingPage= 1;
+                var lastPage= 10;
+                var pageCountDiff = pageCount - page;//difference between selected page and number og page 
+                if(pageCount > 10 && page > 6){
+                    startingPage = page - 5;
+                    lastPage = page + 4;
+                }
+                if(pageCountDiff < 4){
+                    lastPage = pageCount;
+                    startingPage = startingPage - (4 - pageCountDiff);
+                }
+                for(var x=1;x <= pageCount;x++){
+                    var hiddenPage = "";
+                    var active="";
+                    if(x < startingPage || x > lastPage){
+                        hiddenPage = "hide";
+                    }
+                    if(x == page){
+                        active = "active";
+                    }
+                    pagination += '<li class="page-item '+ active + hiddenPage +'" ><a>' + x + '</a></li>';
+                }
+                pagination += '<li class="page-item relative ' + disableLast + ' next-button"><a class="page-link" aria-label="Next"><span aria-hidden="true">›</span></a></li><li class="page-item relative ' + disableLast + ' last-button"><a class="page-link" aria-label="Last"><span aria-hidden="true">&raquo;</span></a></li></ul></div>';
+
+                $('#incident-' + section + ' .incident-list').append(pagination);
+
+                $('#incident-' + section + ' .incident-list .pagination').children('li').not('.active, .disabled, .relative').on('click', function(){
+                    get_incident_list(section, $(this).children('a').text());
+                })
+
+                if(!disableFirst){//if selected page in pagination is one
+                    $('#incident-' + section + ' .incident-list .pagination .first-button').on('click', function(){
+                        get_incident_list(section, 1);
+                    })
+    
+                    $('#incident-' + section + ' .incident-list .pagination .previous-button').on('click', function(){
+                        get_incident_list(section, page -1);
+                    })
+                }
+                
+                if(!disableLast){//if selected page in pagination is the last page
+                    $('#incident-' + section + ' .incident-list .pagination .next-button').on('click', function(){
+                        get_incident_list(section, page + 1);
+                    })
+                    $('#incident-' + section + ' .incident-list .pagination .last-button').on('click', function(){
+                        get_incident_list(section, pageCount);
+                    })
                 }
             }
 
-
-            function get_incident_list(section) {
-                var currenListItems = getCurrentIncidents(section);
-                if (currenListItems.length < 1) {
-                    $('#incident-' + section + ' .incident-list').html('<div class="loading-animation"><img src="/hc/theme_assets/539845/200023575/spingrey.gif" style="border:0px"></div>');
-                    var incidentsUrl = '/api/v2/help_center/en-us/sections/' + section + '/articles.json?page=1&per_page=30';
-                    getArticles();
-
-                    function getArticles() {
-                        $.get(incidentsUrl).done(function(incident) {
-                            incidentsUrl = incident.next_page;
-                            if (section == 360000037612) {
-                                mdxIncidents = mdxIncidents.concat(incident.articles);
-                            } else if (section == 202580163) {
-                                sasIncidents = sasIncidents.concat(incident.articles);
-                            } else if (section == 360000037572) {
-                                dspIncidents = dspIncidents.concat(incident.articles);
-                            } else if (section == 360000041291) {
-                                dmpIncidents = dmpIncidents.concat(incident.articles)
-                            } else if (section == 360002974512) {
-                                siteOptimization = siteOptimization.concat(incident.articles);
-                            } else if (section == 360002990152) {
-                                internalIncidents = internalIncidents.concat(incident.articles)
-                            }
-                            if (incidentsUrl == null) {
-                                addIncidentList(section);
-                            } else {
-                                getArticles();
-                            }
-                        });
-                    }
-                } else {
-                    addIncidentList(section);
+            function checkPageCount(sectionID){
+                if(sectionID == messageBoardSAS){
+                    return sasNumPage;
                 }
+                if(sectionID == messageBoardMDX){
+                    return mdxNumPage;
+                }
+                if(sectionID == messageBoardDSP){
+                    return dspNumPage;
+                }
+                if(sectionID == messageBoardDMP){
+                    return dmpNumPage;
+                }
+                if(sectionID == messageBoardSiteOP){
+                    return siteOpNumPage;
+                }
+                if(sectionID == messageBoardInternal){
+                    return internalNumPage;
+                }
+                return 0;
+            }
+            
+            function setPageCount(sectionID, count){
+                if(sectionID == messageBoardSAS){
+                    sasNumPage = count;
+                }
+                if(sectionID == messageBoardMDX){
+                    mdxNumPage = count;
+                }
+                if(sectionID == messageBoardDSP){
+                    dspNumPage = count;
+                }
+                if(sectionID == messageBoardDMP){
+                    dmpNumPage = count;
+                }
+                if(sectionID == messageBoardSiteOP){
+                    siteOpNumPage = count;
+                }
+                if(sectionID == messageBoardInternal){
+                    internalNumPage = count;
+                }
+                return 0;
             }
 
-            function addIncidentList(section) {
-                var currentSection = $('#incident-' + section);
-                currentSection.find('.incident-list-item').remove();
-                var currentItems = getCurrentIncidents(section);
-                var total_incident = currentItems.length;
-                var getIncidentListStatus = "";
-                for (var x = 0; x < total_incident; x++) {
-                    var label = currentItems[x].label_names,
-                        type = "",
-                        archive = "Archive",
-                        op_class = "activate",
-                        hidden = "",
-                        op_class2 = "";
-                    for (var i = 0; i < label.length; i++) {
-                        if (label[i].includes("Type:")) {
-                            type = label[i].replace("Type:", "")
-                        }
-                        if (label[i] == "Archived") {
-                            archive = "Unarchive";
-                            op_class = "activated";
-                        }
-                        if (label[i] == "Hidden") {
-                            hidden = "Show";
-                            op_class2 = "activate";
-                        } else if (label[i] == "ShowInHomepage") {
-                            hidden = "Hide";
-                            op_class2 = "activated";
-                        }
-                        if (label[i].includes("Status:")) {
-                            getIncidentListStatus = label[i].replace("Status:", "").toUpperCase();
-                        }
-                    }
 
-                    if (type != "Template" && type != "") {
-                        var incident_id = currentItems[x].id;
-                        var title = currentItems[x].title;
-                        var url = currentItems[x].html_url;
-                        var date = currentItems[x].created_at;
-                        var date_created = new Date(date);
-                        if (title[0] === "[") {
-                            title = title.slice(title.indexOf(']') + 1, title.length);
-                        }
-                        if (hidden != "") {
-                            var hidden = '</a><a class="incident-item-hide ' + op_class2 + '">' + hidden + '</a>';
-                        }
-                        if (section == sas) {
-                            $('#incident-' + section + ' .incident-list').append('<div class="incident-list-item"><div class="incident-item-body"><h5>' + getIncidentLabel(getIncidentListStatus) + title + '</h5><small>Posted on ' + date_created.toDateString() + " " + date_created.toLocaleTimeString() + '</small></div><div class="incident-item-action"><a class="incident-item-view">View ' + type + '</a>' + hidden + '<a class="incident-item-delete" id="incident-subscribe-button">Delete</a><a class="incident-subscribe-button" id="update-' + type.toLowerCase() + '-btn">Update<span class="hide">' + incident_id + '</span><span id="platform_id style="display:none;">' + section + '</span></a></div></div>');
-                        } else {
-                            $('#incident-' + section + ' .incident-list').append('<div class="incident-list-item"><div class="incident-item-body"><h5>' + getIncidentLabel(getIncidentListStatus) + title + '</h5><small>Posted on ' + date_created.toDateString() + " " + date_created.toLocaleTimeString() + '</small></div><div class="incident-item-action"><a class="incident-item-view">View ' + type + '</a>' + hidden + '<a class="incident-item-archive ' + op_class + '">' + archive + '</a><a class="incident-subscribe-button" id="incident-item-delete">Delete</a><a class="incident-subscribe-button" id="update-' + type.toLowerCase() + '-btn">Update<span class="hide">' + incident_id + '</span><span id="platform_id" style="display:none;">' + section + '</span></a></div></div>');
-                        }
-                    }
+            //return appropriate with depending on the number of pages.
+            function getPaginationWidth(page){
+                if(page >= 10){
+                    return 55;
                 }
-                paginateCurrentIncidents(section);
-                $(".loading-animation").remove();
+                return (page + 4) * 3.8;
             }
-            var paginate = {
-                startPos: function(pageNumber, perPage) {
-                    // determine what array position to start from
-                    // based on current page and # per page
-                    return pageNumber * perPage;
-                },
 
-                getPage: function(items, startPos, perPage) {
-                    // declare an empty array to hold our page items
-                    var page = [];
+            function getPageCount(sectionID){
+                return $.get('/api/v2/help_center/articles/search.json?label_names=Type:Incident,Type:Maintenance&section='+ sectionID +'&per_page=20&page=1');
+            }
 
-                    // only get items after the starting position
-                    items = items.slice(startPos, items.length);
 
-                    // loop remaining items until max per page
-                    for (var i = 0; i < perPage; i++) {
-                        page.push(items[i]);
-                    }
+            function get_incident_list(section, page){
+                addSpinner(section, page);
+                var $lastPageIncidents = $('#incident-'+ section +' .incident-list').children();
+                var numberOfPage = checkPageCount(section);
+                if(!numberOfPage){
+                    showLoadingAnimation();
+                    getPageCount(section).done(function(result){
+                        numberOfPage = result.page_count;
+                        setPageCount(section, result.page_count);
+                        getOrderedIncidents();
+                    })
+                }else{
+                    getOrderedIncidents();
+                }
 
-                    return page;
-                },
-
-                totalPages: function(items, perPage) {
-                    // determine total number of pages
-                    return Math.ceil(items.length / perPage);
-                },
-
-                createBtns: function(totalPages, currentPage) {
-                    // create buttons to manipulate current page
-                    var pagination = $('<div class="pagination" />');
-
-                    // add a "first" button
-                    pagination.append('<span class="pagination-button">&laquo;</span>');
-
-                    // add pages inbetween
-                    for (var i = 1; i <= totalPages; i++) {
-                        // truncate list when too large
-                        if (totalPages > 5 && currentPage !== i) {
-                            // if on first two pages
-                            if (currentPage === 1 || currentPage === 2) {
-                                // show first 5 pages
-                                if (i > 5) continue;
-                                // if on last two pages
-                            } else if (currentPage === totalPages || currentPage === totalPages - 1) {
-                                // show last 5 pages
-                                if (i < totalPages - 4) continue;
-                                // otherwise show 5 pages w/ current in middle
-                            } else {
-                                if (i < currentPage - 2 || i > currentPage + 2) {
-                                    continue;
-                                }
+                function getOrderedIncidents(){
+                $.get('/api/v2/help_center/en-us/sections/'+ section +'/articles.json?per_page=20&page='+page).done(function(data){
+                    var newPageIncidents = '';
+                    for (var x = 0, len = data.articles.length; x < len; x++) {
+                        var label = data.articles[x].label_names,
+                            type = "",
+                            archive = "Archive",
+                            op_class = "activate",
+                            hidden = "",
+                            op_class2 = "",
+                            getIncidentListStatus = "",
+                            segmentID = data.articles[x].user_segment_id;
+                        for (var i = 0; i < label.length; i++) {
+                            if (label[i].includes("Type:")) {
+                                type = label[i].replace("Type:", "")
+                            }
+                            if (label[i] == "Archived") {
+                                archive = "Unarchive";
+                                op_class = "activated";
+                            }
+                            if (label[i] == "Hidden") {
+                                hidden = "Show";
+                                op_class2 = "activate";
+                            } else if (label[i] == "ShowInHomepage") {
+                                hidden = "Hide";
+                                op_class2 = "activated";
+                            }
+                            if (label[i].includes("Status:")) {
+                                getIncidentListStatus = label[i].replace("Status:", "").toUpperCase();
                             }
                         }
-
-                        // markup for page button
-                        var pageBtn = $('<span class="pagination-button page-num" />');
-
-                        // add active class for current page
-                        if (i == currentPage) {
-                            pageBtn.addClass('active');
+                        if (type != "Template" && type != "") {
+                            var incident_id = data.articles[x].id;
+                            var title = data.articles[x].title;
+                            var url = data.articles[x].html_url;
+                            var date = data.articles[x].created_at;
+                            var date_created = new Date(date);
+                            if (title[0] === "[" && type != "Maintenance") {
+                                title = title.slice(title.indexOf(']') + 1, title.length);
+                            }
+                            if (hidden != "") {
+                                var hidden = '</a><a class="incident-item-hide ' + op_class2 + '">' + hidden + '</a>';
+                            }
+                            var archiveButton = '';
+                            if (section != sas) {
+                                archiveButton = '<a class="incident-item-archive ' + op_class + '">' + archive + '</a>';
+                            }
+                            newPageIncidents +='<div class="incident-list-item"><div class="incident-item-body"><h5>' + getIncidentLabel(getIncidentListStatus) + title + '</h5><small>Posted on ' + date_created.toDateString() + " " + date_created.toLocaleTimeString() + '</small><span class="label user-segments-label">'+getUserSegmentName(segmentID) +'</span></div><div class="incident-item-action"><a class="incident-item-view">View ' + type + '</a>' + hidden + archiveButton +'<a class="incident-subscribe-button" id="incident-item-delete">Delete</a><a class="incident-subscribe-button" id="update-' + type.toLowerCase() + '-btn">Update<span class="hide">' + incident_id + '</span><span id="platform_id" style="display:none;">' + section + '</span></a></div></div>';
                         }
-
-                        // set text to the page number
-                        pageBtn.text(i);
-
-                        // add button to the container
-                        pagination.append(pageBtn);
                     }
-
-                    // add a "last" button
-                    pagination.append($('<span class="pagination-button">&raquo;</span>'));
-
-                    return pagination;
-                },
-
-                createPage: function(items, currentPage, perPage) {
-                    // remove pagination from the page
-                    $('.pagination').remove();
-
-                    // set context for the items
-                    var container = items.parent(),
-                        // detach items from the page and cast as array
-                        items = items.detach().toArray(),
-                        // get start position and select items for page
-                        startPos = this.startPos(currentPage - 1, perPage),
-                        page = this.getPage(items, startPos, perPage);
-
-                    // loop items and readd to page
-                    $.each(page, function() {
-                        // prevent empty items that return as Window
-                        if (this.window === undefined) {
-                            container.append($(this));
-                        }
-                    });
-
-                    // prep pagination buttons and add to page
-                    var totalPages = this.totalPages(items, perPage),
-                        pageButtons = this.createBtns(totalPages, currentPage);
-
-                    container.after(pageButtons);
-                }
-            };
-
-            // stuff it all into a jQuery method!
-            $.fn.paginate = function(perPage) {
-                var items = $(this);
-
-                // default perPage to 5
-                if (isNaN(perPage) || perPage === undefined) {
-                    perPage = 5;
-                }
-
-                // don't fire if fewer items than perPage
-                if (items.length <= perPage) {
-                    return true;
-                }
-
-                // ensure items stay in the same DOM position
-                if (items.length !== items.parent()[0].children.length) {
-                    items.wrapAll('<div class="pagination-items" />');
-                }
-
-                // paginate the items starting at page 1
-                paginate.createPage(items, 1, perPage);
-
-                // handle click events on the buttons
-                $(document).on('click', '.pagination-button', function(e) {
-                    // get current page from active button
-                    var currentPage = parseInt($('.pagination-button.active').text(), 10),
-                        newPage = currentPage,
-                        totalPages = paginate.totalPages(items, perPage),
-                        target = $(e.target);
-
-                    // get numbered page
-                    newPage = parseInt(target.text(), 10);
-                    if (target.text() == '«') newPage = 1;
-                    if (target.text() == '»') newPage = totalPages;
-
-                    // ensure newPage is in available range
-                    if (newPage > 0 && newPage <= totalPages) {
-                        paginate.createPage(items, newPage, perPage);
-                        $(window).scrollTop();
+                    $('#incident-' + section + ' .incident-list').append(newPageIncidents);
+                    hideLoadingAnimation();
+                    if(data.page_count > 1){
+                        addPagination(section , data.page, numberOfPage);
                     }
-                    $('.message-board-container').scrollTop(0);
-                });
-            };
-
-            function paginateCurrentIncidents(section) {
-                var currentSection = $('#incident-' + section);
-                var items = currentSection.find('.incident-list-item');
-                items.paginate(20);
+                    $lastPageIncidents.remove();
+                    $('.message-board-container').scrollTo(0, 0);
+                })
+                }
             }
 
             function get_platforms(category) {
@@ -2536,6 +2602,8 @@ $(document).ready(function() {
                     $('.section-tree, .article-list:not(#show-data), .main-components-container, .pagination ul').show();
                 }
             }
+
+            get_incident_list($(this).parent().find('#platform_id').text(), 1);
             $(window).scrollTop(0);
         });
 
@@ -2548,7 +2616,7 @@ $(document).ready(function() {
                 var view_page = 'main:not(.messageBoard) ';
                 var containerClass = "related-articles-view";
             }
-            $(view_page + '.incident-view-page').html('<div class="loading-animation"><img src="/hc/theme_assets/539845/200023575/spingrey.gif" style="border:0px"></div>');
+            $(view_page + '.incident-view-page').html('<div class="loading-animation"><img src="'+ gSZMKspingreyGIFURL +'" style="border:0px"></div>');
             $.get('/api/v2/help_center/en-us/articles/' + incident_id).done(function(data) {
                 var currentIncident = data.article;
                 viewedIncidentTitle = currentIncident.title;
@@ -2612,15 +2680,17 @@ $(document).ready(function() {
 
                 function instantiateStringifiedDOM() {
                     relatedIncidentSet.forEach(function(data) {
-                        if (data.section_id === 360000037612) {
+                        if (data.section_id === messageBoardMDX) {
                             section = "MDX 2.0";
-                        } else if (data.section_id === 202580163) {
+                        } else if (data.section_id === messageBoardSAS) {
                             section = "Sizmek Advertising Suite";
-                        } else if (data.section_id === 360000037572) {
+                        } else if (data.section_id === messageBoardDSP) {
                             section = "DSP";
-                        } else if (data.section_id === 360000041291) {
+                        } else if (data.section_id === messageBoardDMP) {
                             section = "DMP";
-                        } else if (data.section_id === 360002990152) {
+                        } else if (data.section_id === messageBoardSiteOP) {
+                            section = "Site Optimization";
+                        } else if (data.section_id === messageBoardInternal) {
                             section = "Internal";
                         }
                         htmlElementView += '<div class="incident-item-action" id="related-incident"><a class="incident-item-view" href="/hc/en-us/articles/' + data.id + '">' + section + '</a><span>' + data.id + '</span></div>';
@@ -2629,16 +2699,24 @@ $(document).ready(function() {
                 }
 
                 function populateModal() {
+                    hideLoadingAnimation();
                     if (type == "Incident") {
                         var update_btn_id = "update-incident-btn";
                     } else {
                         var update_btn_id = "update-maintenance-btn";
                     }
-                    if (title[0] === "[") {
+                    if (type == "Incident" && title[0] === "[") {
                         title = title.slice(title.indexOf(']') + 1, title.length);
                     }
-                    $(view_page + '.incident-view-page').html('<div class="incident-container-show"><div class="incident-navigation"> <div class="incident-nav-header"><div class="incident-header-title" id="incident-title-' + in_severity + '">' + getIncidentLabel(in_status.toUpperCase()) + title + '</div><span class="hide">' + incident_id + '</span></div><h3 class="sub-header">Previous Updates</h3></div> <div class="incident-list-cont show"> <div class="incident-list"><div class="incident-list-item"><div class="incident-item-body"><h5>' + in_status + '</h5></div><div class="incident-item-cont">' + body + '<br><small class="small">Posted on ' + date_created.toDateString() + " " + date_created.toLocaleTimeString() + '</small><span class="hide">' + body + '<span></div><div class="edit_body"><a>Edit</a></div></div></div><a id="back-incident-list" class="plain-button"><br><span style="font-family:arial">←</span> Incidents</a></div></div>')
-                    if (in_severity) {
+                    var incidentStatus = in_status;
+                    var incidentBody = body;
+
+                    if(body.indexOf(':<br><br>') > 1){
+                        incidentStatus = body.split(':<br><br>', 1);
+                        incidentBody = body.substr(body.indexOf(':<br><br>') + 1);
+                    }
+                    $(view_page + '.incident-view-page').html('<div class="incident-container-show"><div class="incident-navigation"> <div class="incident-nav-header"><div class="incident-header-title" id="incident-title-' + in_severity + '">' + getIncidentLabel(in_status.toUpperCase()) + title + '</div><span class="hide">' + incident_id + '</span></div><h3 class="sub-header">Previous Updates</h3></div> <div class="incident-list-cont show"> <div class="incident-list"><div class="incident-list-item"><div class="incident-item-body"><h5>' + incidentStatus + '</h5></div><div class="incident-item-cont">' + incidentBody + '<br><small class="small">Posted on ' + date_created.toDateString() + " " + date_created.toLocaleTimeString() + '</small><span class="hide">' + body + '<span></div><div class="edit_body"><a>Edit</a></div></div></div><a id="back-incident-list" class="plain-button"><br><span style="font-family:arial">←</span> Incidents</a></div></div>')
+                    if (in_severity) {0
                         $(view_page + '.incident-container-show .incident-header-title').css('color', status_colors[in_severity - 1]);
                     } else if (type == "Maintenance") {
                         $(view_page + '.incident-container-show .incident-header-title').css('color', 'rgb(52, 152, 219)');
@@ -2892,7 +2970,7 @@ $(document).ready(function() {
             };
             history.pushState(obj, obj.Page, obj.Url);
         } else {
-            window.location.replace("https://support.sizmek.com/hc/en-us/articles/360003514372");
+            window.location.replace("/hc/en-us/articles/360020753431");
         }
     }
     setTimeout(function() {
@@ -2900,11 +2978,11 @@ $(document).ready(function() {
             var articleId = $(this).attr('href'),
                 getURL = window.location.href,
                 newURL;
-            if (getURL === 'https://support.sizmek.com/hc/en-us/categories/201680143') {
-                newURL = getURL.replace('categories/201680143', 'articles/');
+            if (getURL === '/hc/en-us/categories/' + messageBoardCategory) {
+                newURL = getURL.replace('categories/' + messageBoardCategory, 'articles/');
                 changeURL(articleId, newURL + articleId);
-            } else if (getURL === 'https://support.sizmek.com/hc/en-us/categories/201680143-Message-Board') {
-                newURL = getURL.replace('categories/201680143-Message-Board', 'articles/');
+            } else if (getURL === '/hc/en-us/categories/' + messageBoardCategory) {
+                newURL = getURL.replace('categories/' + messageBoardCategory, 'articles/');
                 changeURL(articleId, newURL + articleId);
             } else {}
             $(this).addClass('active');
@@ -2913,25 +2991,8 @@ $(document).ready(function() {
     //returns back to the ajax category url
     $('.incident-view-page').on('click', '#back-incident-list', function() {
         var getURL = window.location.href;
-        switch (getURL) {
-            case 'https://support.sizmek.com/hc/en-us/categories/201680143':
-                break;
-            case 'https://support.sizmek.com/hc/en-us/categories/201680143-Message-Board':
-                break;
-            case 'https://support.sizmek.com/hc/en-us/sections/360000037612-Sizmek-MDX2-0-Message-Board':
-                break;
-            case 'https://support.sizmek.com/hc/en-us/sections/202580163-Sizmek-Advertising-Suite-Message-Board':
-                break;
-            case 'https://support.sizmek.com/hc/en-us/sections/360000037572-Sizmek-DSP-Message-Board':
-                break;
-            case 'https://support.sizmek.com/hc/en-us/sections/360000041291-Sizmek-DMP-Message-Board':
-                break;
-            case 'https://support.sizmek.com/hc/en-us/sections/360002990152-Internal':
-                break;
-            default:
-                history.back();
-                break;
-        }
+        if (getURL.indexOf(messageBoardCategory) || getURL.indexOf(messageBoardMDX) || getURL.indexOf(messageBoardSAS) || getURL.indexOf(messageBoardDSP) || getURL.indexOf(messageBoardDMP) || getURL.indexOf(messageBoardInternal)) {} else history.back();
+
         $('.article-list a').removeClass('active');
     });
 });

@@ -34,7 +34,7 @@
     width: 100%;
     align-items: center;
 }
-.subs-nav-header .subs-header-title{
+.subs-nav-header .subs-header-title, .incident-nav-header .incident-header-title{
     flex: 1;
     font-size: 22px;
     font-weight: 600;
@@ -888,6 +888,9 @@ div.components-affected-update:nth-last-child(2){
 #goto-messageBoard-admin:hover{
     width: 233px;
 }
+.new-external-container{
+    float:right;
+}
 .activated{
     background-color: #246fdc !important;
     color: #fff !important;
@@ -989,6 +992,9 @@ div.callout {
     text-align: center;
     display: inline-block;
     margin: 7px;
+}
+.main-hashtagList-container{
+    margin-top: 20px;
 }
 #hashBtn:hover, #delHashBtn:hover, .hashTags:hover, li .tagList a:hover{
     background-color: #448df7;
@@ -1119,38 +1125,40 @@ li .tagList a{
 }
 .article-label{
     background: #4986e7;
-    border-radius: 3px 0 0 3px;
+    border-radius: 15px;
     color: #fff;
     display: inline-block;
     height: 26px;
     line-height: 26px;
-    padding: 0 20px 0 12px;
     position: relative;
-    margin: 0 10px 10px 0;
+    margin: 10px;
     text-decoration: none;
     -webkit-transition: color 0.2s;
-}
-.article-label::after {
-  background: #fff;
-  border-bottom: 13px solid transparent;
-  border-left: 10px solid #4986e7;
-  border-top: 13px solid transparent;
-  content: "";
-  position: absolute;
-  right: 0;
-  top: 0;
 }
 .article-label:hover{
     color: #fff !important;
 }
 .hashtag-list th, td{
-    border: none !important;
+    /* Removing this line to fix table cell outline issue reported by Deb, originally committed by Kenneth 20 Nov 2018
+    /* border: none !important;*/
 }
 .hashtag-list table{
     border: none;
 }
 .hashtag-list .modal-title{
     color: black;
+}
+.hashtag-list .label{
+    display: none;
+    border-radius: 10px;
+    float: right;
+    font-size: 15px;
+    width: 35px;
+    text-align: center;
+    margin-right: 5px;
+    background-color: #4986e7!important;
+    color: #fff!important;
+    border: 1px solid #4986e7!important;
 }
 .hashtag-list th{
     color: #0d2a4d;
@@ -1207,17 +1215,15 @@ li .tagList a{
     float: right;
     margin: 0px 6px 0px 0px;
 }
-.hashtag-actions{
+.edit-hashtag-option, .delete-hashtag-option{
     width: 22px !important;
     text-align: center;
     padding-top: 4px;
     border-radius: 10px;
     height: 20px;
-    padding-right: 1px;
-    margin-left: -8px;
-    margin-right: 1px;
+    margin:0px 4px;
 }
-.hashtag-actions:hover{
+.edit-hashtag-option:hover, .delete-hashtag-option:hover{
     color: #2e64f8;
     background-color: #ffffff;
 }
@@ -1303,7 +1309,7 @@ li .tagList a{
 
 #edit-hashtag-button, #delete-hashtag-button, #save-hashtag-button{
     float:right;
-    background-color: #2196f3;
+    background-color: #2983ff;
 }
 
 #edit-hashtag-button span, #delete-hashtag-button span, #save-hashtag-button span{
@@ -1355,25 +1361,238 @@ li .tagList a{
     border-bottom: 0px;
     padding: 7px;
 }
-
+.hashtag-list li:last-child{
+    border-bottom: solid 1px #e5e5e5;
+}
+.hashtag-num-articles .fa-spinner{
+    margin-left: 10px;
+    display: none;
+}
+#show-hashtag-articles{
+    border: solid 2px #2e64f8;
+    height: inherit;
+    background-color: #2e64f8;
+    color: white;
+    border-radius: 0px;
+}
 .hashtag-list .fa-caret-right, .hashtag-list .fa-caret-down {
     padding-right: 10px;
-}
-.hashtag-list .label{
-     border-radius: 10px;
-    float: right;
-    font-size: 15px;
-    width: 35px;
-    text-align: center;
-    margin-right: 5px;
-    background-color: #4986e7!important;
-    color: white !important;
-    border: solid 1px #4986e7 !important;
 }
 .hashtag-count label{
     font-size: 20px;
     padding: 0px 0px 10px 0px;
 }
+.hashtag-count{
+    float: right;
+    margin-top: 12px;
+    margin-right: 50px;
+}
+.hashtag-sorting{
+    float: right;
+    margin-right: -140px;
+    position: relative;
+    display: block;
+    width: 13em;
+    height: 38px;
+    line-height: 3;
+   background: #0b3470;
+    overflow: hidden;
+}
+.hashtag-num-articles{
+    float:right;
+    margin-right: -280px;
+}
+#hashtag-select{
+    height: inherit;
+    width: inherit;
+    font-size: 15px;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    -ms-appearance: none;
+    appearance: none;
+    outline: 0;
+    box-shadow: none;
+    border: 0 !important;
+    background: #0e4596;
+    background-image: none;
+    color: white;
+    padding-left: 8px;
+    text-transform: uppercase;
+}
+
+#hashtag-select::after{
+    display: none;
+}
+.hashtag-sorting::after{
+    content: '\25BC';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    padding: 0 1em;
+    background: #2e64f8;
+    pointer-events: none;
+    color:#0b3470;
+}
+.hashtag-sorting:hover::after{
+    color:white;
+}
+.hashtag-sorting::after{
+    transition: .25s all ease;
+}
+.hashtag-count-container{
+    border: solid 1px #e4e1e1;
+    border-top: solid #2e64f8;
+    display: inline-block;
+    width: 20%;
+}
+.hashtag-count-icon{
+    display: inline-block;
+    height: 50px;
+    width: 50px;
+    text-align: center;
+    border: solid 2px #2e64f8;
+    border-radius: 25px;
+    background-color: #2e64f8;
+    margin: 8px;
+}
+.hashtag-management .fa-tags{
+    font-size: 30px;
+    padding-top: 8px;
+    color: #ffffff;
+}
+.hashtag-label{
+    font-size: 10px !important;
+}
+#number-hashtags, .hashtag-label {
+    padding: 0px !important;
+    margin: 0px !important;
+}
+/*MessageBoard Loading Animation*/
+ #loader-container{
+    position: fixed;
+    background: #ffffff;
+    width: 100%;
+    height: 100%;
+ }
+ .warningMessage{
+    position: absolute;
+    background-color: #ffefbc;
+    border: solid 1px #ffbd00;
+    border-radius: 5px;
+    color: #bc892e;
+    font: #bc892e;
+    left: 26%;
+    padding: 5px;
+    top: 60%;
+ }
+ .warningMessage span:first-child{
+    font-weight: bold;
+ }
+ .warning-sign-container{
+    display: inline-block;
+    padding-right: 5px;
+ }
+ .fa-exclamation-circle{
+    color: #bc892e;
+    font-size: 25px;
+    padding: 10px;
+ }
+ .warning-message-container{
+    float: right;
+    padding-right: 30px;
+ }
+
+.sk-folding-cube {
+    width: 55px;
+    height: 55px;
+    position: relative;
+    -webkit-transform: rotateZ(45deg);
+    transform: rotateZ(45deg);
+    top: 35%;
+    left: 38%;
+}
+
+.sk-folding-cube .sk-cube {
+  float: left;
+  width: 50%;
+  height: 50%;
+  position: relative;
+  -webkit-transform: scale(1.1);
+      -ms-transform: scale(1.1);
+          transform: scale(1.1); 
+}
+.sk-folding-cube .sk-cube:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #339bdc;
+  -webkit-animation: sk-foldCubeAngle 2.4s infinite linear both;
+          animation: sk-foldCubeAngle 2.4s infinite linear both;
+  -webkit-transform-origin: 100% 100%;
+      -ms-transform-origin: 100% 100%;
+          transform-origin: 100% 100%;
+}
+.sk-folding-cube .sk-cube2 {
+  -webkit-transform: scale(1.1) rotateZ(90deg);
+          transform: scale(1.1) rotateZ(90deg);
+}
+.sk-folding-cube .sk-cube3 {
+  -webkit-transform: scale(1.1) rotateZ(180deg);
+          transform: scale(1.1) rotateZ(180deg);
+}
+.sk-folding-cube .sk-cube4 {
+  -webkit-transform: scale(1.1) rotateZ(270deg);
+          transform: scale(1.1) rotateZ(270deg);
+}
+.sk-folding-cube .sk-cube2:before {
+  -webkit-animation-delay: 0.3s;
+          animation-delay: 0.3s;
+}
+.sk-folding-cube .sk-cube3:before {
+  -webkit-animation-delay: 0.6s;
+          animation-delay: 0.6s; 
+}
+.sk-folding-cube .sk-cube4:before {
+  -webkit-animation-delay: 0.9s;
+          animation-delay: 0.9s;
+}
+@-webkit-keyframes sk-foldCubeAngle {
+  0%, 10% {
+    -webkit-transform: perspective(140px) rotateX(-180deg);
+            transform: perspective(140px) rotateX(-180deg);
+    opacity: 0; 
+  } 25%, 75% {
+    -webkit-transform: perspective(140px) rotateX(0deg);
+            transform: perspective(140px) rotateX(0deg);
+    opacity: 1; 
+  } 90%, 100% {
+    -webkit-transform: perspective(140px) rotateY(180deg);
+            transform: perspective(140px) rotateY(180deg);
+    opacity: 0; 
+  } 
+}
+
+@keyframes sk-foldCubeAngle {
+  0%, 10% {
+    -webkit-transform: perspective(140px) rotateX(-180deg);
+            transform: perspective(140px) rotateX(-180deg);
+    opacity: 0; 
+  } 25%, 75% {
+    -webkit-transform: perspective(140px) rotateX(0deg);
+            transform: perspective(140px) rotateX(0deg);
+    opacity: 1; 
+  } 90%, 100% {
+    -webkit-transform: perspective(140px) rotateY(180deg);
+            transform: perspective(140px) rotateY(180deg);
+    opacity: 0; 
+  }
+}
+
+
 /*Menu Management Style*/
 #mainUL {
     list-style: none;
@@ -1898,86 +2117,3 @@ body.dragging, body.dragging * {
      background-color: #3498DB;
      color: white;
  }
-/* add internal incidents */
-
- .addinternal{ 
-    padding: 5px 25px; 
-    left: 435px;
-    top: -12px;
-	overflow:hidden;
-}
-.addinternal:before {
-	font-family: FontAwesome;
-	content:"\f055";
-	position: absolute;
-	
-	left: -30px;
-	transition: all 200ms ease;
-}
-.addinternal:hover:before {
-	left: 7px;
-}
-
-
-
-/* add external incidents */
-.addexternal{ 
-    padding: 5px 25px; 
-    left: 580px;
-    top: 30px;
-	overflow:hidden;
-}
-.addexternal:before {
-	font-family: FontAwesome;
-	content:"\f055";
-	position: absolute;
-	
-	left: -30px;
-	transition: all 200ms ease;
-}
-.addexternal:hover:before {
-	left: 7px;
-}
-
-/* external close btn */
-
-.externalClosebtn{
-    left: 750px;
-    top: -400px;
-    color: gray;
-    font-family: FontAwesome;
-	content:"\f055";
-
-}
-
-.externalClosebtn::before{
-    content:"\f00d";
-}
-
-.externalClosebtn:hover {
-    background-color: white;
- 
-
-
-}
-/* internal close btn */
-
-.internalClosebtn{
-    left: 750px;
-    top: -570px;
-    color: gray;
-    font-family: FontAwesome;
-	content:"\f055";
-
-}
-
-.internalClosebtn::before{
-    content:"\f00d";
-}
-
-.internalClosebtn:hover {
-    background-color: white;
- 
-}
-
-

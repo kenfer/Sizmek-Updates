@@ -43,7 +43,6 @@ $(function() {
 		function removePageElems(appViewer) {
 
 			if (appViewer) {
-
 				$("main").css("width", "100%");
 				$(".main-column").css("margin", "0px");
 				$(".article-body").css("padding", "0px");

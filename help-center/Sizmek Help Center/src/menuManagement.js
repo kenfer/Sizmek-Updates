@@ -24,11 +24,13 @@ $(document).ready(function () {
         sectionsToShow = [],
         articlesToHide = [],
         articlesToShow = [];
+
     if (jQuery.inArray("view_support_content", HelpCenter.user.tags) !== -1) {
-        $("#user-menu").append("<a id='menuAdmin' role='menuitem' href='/hc/en-us/articles/360007566192'>Menu Management</a>");
+        $("#user-menu").append("<a id='menuAdmin' role='menuitem' href='/hc/en-us/articles/"+ menuManagementPage +"'>Menu Management</a>");
     }
+
     //Main flow
-    if (window.location.href.indexOf('360007566192') > -1) { //if on menu admin page
+    if (window.location.href.indexOf(menuManagementPage) > -1) { //if on menu admin page
         $('form').remove();
         $('.incident-wrapper').remove();
         $mainWrapper = $('#main-wrap');
@@ -39,12 +41,13 @@ $(document).ready(function () {
             updateItems();
             disableSelect();
         });
+
         //when collapse icon is click
         $('body').on('click', '.menuManagement .fa.fa-angle-right, .menuManagement .fa.fa-angle-down', function () {
             var $currentLI = $(this).parent();
             var currentUL = $currentLI.children('ul');
             $currentLI.css('background-color', 'white');
-            if (currentUL.length) {
+            if (currentUL.children().length) {
                 if (currentUL.is(':visible')) {
                     currentUL.slideUp().css('display', 'none');
                     changeITagClass(true);
@@ -93,6 +96,7 @@ $(document).ready(function () {
             var elements = '' + '<select class="type" style="background-color: #ffffff;">' + '<option value="text">Text</option>' + '<option value="category">Category</option>' + '<option value=section>Section</option>' + '<option value="custom">Custom</option>' + '</select>' + '<select class="visibility" style="background-color: #ffffff;">' + '<option value="1">Visible to everyone</option>' + '<option value="2">Agents and Manager</option>' + '<option value="3">Signed-in users</option>' + '<option value="4">User Segment:</option>' + '</select>' + '<a class="saveButton" style="display:inline;" title="Save"><i class="fa fa-check" style="font-size: 20px;"></i></a>' + '<a class="cancelButton" title="Cancel"><i class="fa fa-times" style="font-size: 20px;"></i></a>';
             currentElement.parent().append(elements);
         }
+
         $('body').on('click', 'a.cancelButton', function () {
           
             $(this).parent().append('<a class="addNewButton">+ ADD</a>');
@@ -112,7 +116,7 @@ $(document).ready(function () {
                 currentItems.splice(currentItems.length - 1, 0, newParent);
                 $parentList.append('<a class="addNewButton">+ ADD</a>');
                 $parentList.children('input,a.saveButton,a.cancelButton, select, .select2').remove();
-                $('<li id="'+ newParent.id +'"><i class="fa fa-th-large ui-sortable-handle"></i><i class="fa fa-angle-right" style="font-size: 16px;"></i><div class="item-name"><a class="categoryDrop " target="_blank">'+ newParent.title +'</a></div><select class="type" id="64fe707b-54cf-4ecc-ab4c-82e14651007a" disabled="disabled"><option value="text">Text</option><option value="category">Category</option><option value="section">Section</option><option value="custom">Custom</option></select><a class="parent-visibility" title="Hide"><i class="fa fa-eye" style="font-size: 20px;"></i></a><a class="editButton" title="Edit"><i class="fa fa-pencil" style="font-size: 20px;"></i></a><a class="deleteButton" title="Delete"><i class="fa fa-trash" style="font-size: 20px;"></i></a><a class="editSaveButton" title="Save"><i class="fa fa-check" style="font-size: 20px;"></i></a><a class="editCancelButton" title="Cancel"><i class="fa fa-times" style="font-size: 20px;"></i></a><ul style="display:none;"><li class="addNew"><a class="add-child-button">+ ADD</a></li></ul></li>').insertBefore($("#mainUL").children().last());
+                $('<li id="'+ newParent.id +'"><i class="fas fa-grip-vertical ui-sortable-handle"></i><i class="fa fa-angle-right" style="font-size: 16px;"></i><div class="item-name"><a class="categoryDrop " target="_blank">'+ newParent.title +'</a></div><select class="type" id="64fe707b-54cf-4ecc-ab4c-82e14651007a" disabled="disabled"><option value="text">Text</option><option value="category">Category</option><option value="section">Section</option><option value="custom">Custom</option></select><a class="parent-visibility" title="Hide"><i class="fa fa-eye" style="font-size: 20px;"></i></a><a class="editButton" title="Edit"><i class="fas fa-pen" style="font-size: 20px;"></i></a><a class="deleteButton" title="Delete"><i class="fa fa-trash" style="font-size: 20px;"></i></a><a class="editSaveButton" title="Save"><i class="fa fa-check" style="font-size: 20px;"></i></a><a class="editCancelButton" title="Cancel"><i class="fa fa-times" style="font-size: 20px;"></i></a><ul style="display:none;"><li class="addNew"><a class="add-child-button">+ ADD</a></li></ul></li>').insertBefore($("#mainUL").children().last());
                 $('#'+newParent.id).children('select').val(newParent.type);
                 $('#'+newParent.id).children('i, a').css({'pointer-events': 'none'})
                 document.getElementById(newParent.id).title = "Save First To Perform Actions"
@@ -129,7 +133,7 @@ $(document).ready(function () {
                 lastModifiedParent = $parentItem.parent().parent().attr('id');
                 $parentItem.append('<a class="add-child-button">+ ADD</a>');
                 $parentItem.children('input, a.save-child-button,a.cancel-child-button, select, .select2').remove();
-                $('<li id="' + newChild.id +'"><i class="fa fa-th-large ui-sortable-handle"></i><i class="fa fa-angle-right" style="font-size: 16px;"></i><div class="item-name"><a class="categoryDrop link-zendesk" href="/hc/admin/categories/200363119/edit" target="_blank">' + newChild.title + '</a></div><select class="type" disabled="disabled"><option value="category">Category</option><option value="text">Text</option><option value="section">Section</option><option value="custom">Custom</option></select><a class="child-visibility" title="Hide"><i class="fa fa-eye" style="font-size: 20px;"></i></a><a class="edit-child-button" title="Edit"><i class="fa fa-pencil" style="font-size: 20px;"></i></a><a class="delete-child-button" title="Delete"><i class="fa fa-trash" style="font-size: 20px;"></i></a><a class="edit-save-child" title="Save"><i class="fa fa-check" style="font-size: 20px;"></i></a><a class="cancel-edit-child" title="Cancel"><i class="fa fa-times" style="font-size: 20px;"></i></a></li>').insertBefore($parentItem.parent().children().last())
+                $('<li id="' + newChild.id +'"><i class="fas fa-grip-vertical ui-sortable-handle"></i><i class="fa fa-angle-right" style="font-size: 16px;"></i><div class="item-name"><a class="categoryDrop link-zendesk" href="/hc/admin/categories/200363119/edit" target="_blank">' + newChild.title + '</a></div><select class="type" disabled="disabled"><option value="category">Category</option><option value="text">Text</option><option value="section">Section</option><option value="custom">Custom</option></select><a class="child-visibility" title="Hide"><i class="fa fa-eye" style="font-size: 20px;"></i></a><a class="edit-child-button" title="Edit"><i class="fas fa-pen" style="font-size: 20px;"></i></a><a class="delete-child-button" title="Delete"><i class="fa fa-trash" style="font-size: 20px;"></i></a><a class="edit-save-child" title="Save"><i class="fa fa-check" style="font-size: 20px;"></i></a><a class="cancel-edit-child" title="Cancel"><i class="fa fa-times" style="font-size: 20px;"></i></a></li>').insertBefore($parentItem.parent().children().last())
                  $('#'+newChild.id).children('select').val(newChild.type);
                 $('#'+newChild.id).find('i, a').css({'pointer-events': 'none'})
                 document.getElementById(newChild.id).title = "Save First To Perform Actions"
@@ -225,46 +229,30 @@ $(document).ready(function () {
         $('body').on('click', '.edit-child-button', function () {
             var $editParent = $(this).parent();
             var index = $editParent.parent().parent().index() -1;
+            
             $editParent.css('height','40px');
             currentItems[index].children[$editParent.index()-1].checkItem = true;
             $editParent.children('label.toggle-text').css('display','inline').show();
-            // $editParent.children(  'input[type="checkbox"]').show();
             $editParent.children('.item-name, .fa').css('display', 'none');
             $editParent.children('.type').toggleClass('currentSelect');
           
-$(document).ready(function(){
-    $('input[type="checkbox"]').click(function(){
-        var checkbox = document.getElementById("checkme");
-        if($(this).prop("checked") == true){
-  
-            currentItems[index].children[$editParent.index()-1].checkItem = true;
-         
-         
-            updateSaveButton();
-        }
-        else if($(this).prop("checked") == false){
-            currentItems[index].children[$editParent.index()-1].checkItem = false;
-         
-            updateSaveButton();
-        }
-    });
-});
+            $('input[type="checkbox"]').click(function(){
+                if($(this).prop("checked") == true){
+                    currentItems[index].children[$editParent.index()-1].checkItem = true;
+                    updateSaveButton();
+                }else if($(this).prop("checked") == false){
+                    currentItems[index].children[$editParent.index()-1].checkItem = false;
+                    updateSaveButton();
+                }
+            });
 
-
-
-    if (nt =1){
-    }
-    else {
-    }
-
-  
             $editParent.children('select').removeAttr('disabled').css('background-color', '#ffffff');
             dropdownValue = $editParent.children('select.type').val();
             addInput($editParent.children('select.type').find(':selected').text().toLowerCase(), $editParent);
             $editParent.children('.edit-save-child, .cancel-edit-child').css('display', 'inline');
             $editParent.children('.edit-child-button, .delete-child-button').css('display', 'none');
 
-        });
+            });
 
        
         //when cancel button is click while editing a child item
@@ -306,7 +294,7 @@ $(document).ready(function(){
             var numOfArrays = 7;
             doneRequest = 0;
             $mainWrapper.css({"opacity":".4"});
-            $('main').append('<div id="loader" ><img class="image-loader" src="/hc/theme_assets/539845/200023575/spingrey.gif"/><label>Please wait...</label></div>')
+            $('main').append('<div id="loader" ><img class="image-loader" src="' + gSZMKspingreyGIFURL+'"/><label>Please wait...</label></div>')
             hideSections();
             showSections();
             hideArticles();
@@ -528,9 +516,9 @@ $("body").on("checked",".child-")
     }
     //append list in page
     function instantiateMenuObject() {
-        $.get('/api/v2/help_center/en-us/articles/360007566192').done(function (data) {
+        $.get('/api/v2/help_center/en-us/articles/'+siteMap).done(function (data) {
             menuCopy = data.article.body;
-            menuObj = JSON.parse(data.article.body);
+            menuObj = JSON.parse(strip_html_tags(data.article.body));
             $('article').css('display', 'none'); //remove existing data from page
             $mainWrapper.children('ul, li').remove();
             if (!$('#products').is(':visible')) {
@@ -579,7 +567,7 @@ $("body").on("checked",".child-")
             listType: 'ul',
             disableParentChange: true,
             protectRoot: true,
-            handle: '.fa-th-large',
+            handle: '.fa-grip-vertical',
             update: function (event, ui) {
                 var index = currentItems.findIndex(function (item) {
                     return item.id == ui.item[0].id
@@ -594,7 +582,7 @@ $("body").on("checked",".child-")
             items: ' > li:not(.addNew)',
             placeholder: 'ui-state-highlight',
             listType: 'ul',
-            handle: '.fa-th-large',
+            handle: '.fa-grip-vertical',
             update: function (event, ui) {
                 var domIndex = $('#mainUL #' + ui.item[0].id).parent().parent().index() - 1;
                 var index = currentItems[domIndex].children.findIndex(function (item) {
@@ -605,6 +593,13 @@ $("body").on("checked",".child-")
                 updateSaveButton();
             }
         });
+
+        $('.menuManagement .fa-grip-vertical').on('mousedown', function(e){
+            e.preventDefault();
+            $(this).addClass('mouseDown')
+        }).on('mouseup', function(){
+            $(this).removeClass('mouseDown');
+        })
     }
 
     function updateSaveButton() {
@@ -637,57 +632,60 @@ $("body").on("checked",".child-")
         arr.splice(new_index, 0, arr.splice(old_index, 1)[0]);
         return arr;
     }
-    //
-    function constructItem(item, isChild) {
 
-       if(item.v){
-            var eye = 'fa-eye';
-            var vTitle = 'Hide';
-        }else{
-            var vTitle = 'Show';
-            var eye='fa-eye-slash';
-        } 
-        
-        var visibilityHandlerClass = isChild ? "child-visibility" : "parent-visibility";
-        var checkes = '<input type = "checkbox" id="checkme" class="box" name="but" visibility="show" ><p id="label">Open New Tab</p>'
-        var select = '<select class="type" id="' + item.id + '">' + '<option value="text">Text</option>' + '<option value="category">Category</option>' + '<option value="section">Section</option>' + '<option value="custom">Custom</option>' + '</select>';
-        item.type == 'category' ? select = '<select class="type" id="' + item.id + '"><option value="category">Category</option><option value="text">Text</option><option value="section">Section</option><option value="custom">Custom</option></select>' : item.type == 'section' ? select = '<select class="type" id="' + item.id + '"><option value="section">Section</option><option value="text">Text</option><option value="category">Category</option><option value="custom">Custom</option></select>' : item.type == 'custom' && (select = '<select class="type" id="' + item.id + '"><option value="custom">Custom</option><option value="text">Text</option><option value="category">Category</option><option value="section">Section</option></select>');
-        var children = isChild ? '<a class="' + visibilityHandlerClass + '" title="'+ vTitle +'"><i class="fa ' + eye + '" style="font-size: 20px;"></i></a><a class="edit-child-button" title="Edit"><i class="fa fa-pencil" style="font-size: 20px;"></i></a><a class="delete-child-button" title="Delete"><i class="fa fa-trash" style="font-size: 20px;"></i></a>' + '<a class="edit-save-child" title="Save"><i class="fa fa-check" style="font-size: 20px;"></i></a>' + '<a class="cancel-edit-child" title="Cancel"><i class="fa fa-times" style="font-size: 20px;"></i><ul class="sublist" id="children-' + item.id + '"></ul></a>' : '<a class="' + visibilityHandlerClass + '" title="Hide"><i class="fa ' + eye + '" style="font-size: 20px;"></i></a><a class="editButton" title="Edit"><i class="fa fa-pencil" style="font-size: 20px;"></i></a>' + '<a class="deleteButton" title="Delete"><i class="fa fa-trash" style="font-size: 20px;"></i></a>' + '<a class="editSaveButton" title="Save"><i class="fa fa-check" style="font-size: 20px;"></i></a>' + '<a class="editCancelButton" title="Cancel"><i class="fa fa-times" style="font-size: 20px;"></i></a><ul class="sublist" id="children-' + item.id + '"></ul></li>';
+    //this function return a string HTML Element that will be use in menu
+    function constructItem(item, isChild) {
         var collapseIcon = "";
         var reference = "";
-        var linkToZendesk = item.type != 'text' ? "link-zendesk" : "";
         var checkBOx = "";
-    
+        var childrenListClass = "sublist";
+        var linkToZendesk = item.type != 'text' ? "link-zendesk" : "";
+        var visibilityHandlerClass = isChild ? "child-visibility" : "parent-visibility";
+        var vTitle = 'Show';
+        var eye='fa-eye-slash';
+        var select = '<select class="type" id="' + item.id + '">' + '<option value="text">Text</option>' + '<option value="category">Category</option>' + '<option value="section">Section</option>' + '<option value="custom">Custom</option>' + '</select>';
+
+        if(item.v){
+            eye = 'fa-eye';
+            vTitle = 'Hide';
+        }
+        if(item.type == 'category'){
+            select = '<select class="type" id="' + item.id + '"><option value="category">Category</option><option value="text">Text</option><option value="section">Section</option><option value="custom">Custom</option></select>';
+        }else if(item.type == 'section'){
+            select = '<select class="type" id="' + item.id + '"><option value="section">Section</option><option value="text">Text</option><option value="category">Category</option><option value="custom">Custom</option></select>';
+            childrenListClass = "articles";
+        }else if(item.type == 'custom'){
+            select = '<select class="type" id="' + item.id + '"><option value="custom">Custom</option><option value="text">Text</option><option value="category">Category</option><option value="section">Section</option></select>';
+        }
+
+        var children = '<a class="' + visibilityHandlerClass + '" title="'+ vTitle +'"><i class="fa ' + eye + '" style="font-size: 20px;"></i></a><a class="edit-child-button" title="Edit"><i class="fas fa-pen" style="font-size: 20px;"></i></a><a class="delete-child-button" title="Delete"><i class="fa fa-trash" style="font-size: 20px;"></i></a>' + '<a class="edit-save-child" title="Save"><i class="fa fa-check" style="font-size: 20px;"></i></a>' + '<a class="cancel-edit-child" title="Cancel"><i class="fa fa-times" style="font-size: 20px;"></i></a><ul class="'+ childrenListClass +'" id="children-' + item.id + '"></ul>'
+
+        if(!isChild){
+            children = '<a class="' + visibilityHandlerClass + '" title="' + vTitle +'"><i class="fa ' + eye + '" style="font-size: 20px;"></i></a><a class="editButton" title="Edit"><i class="fas fa-pen" style="font-size: 20px;"></i></a>' + '<a class="deleteButton" title="Delete"><i class="fa fa-trash" style="font-size: 20px;"></i></a>' + '<a class="editSaveButton" title="Save"><i class="fa fa-check" style="font-size: 20px;"></i></a>' + '<a class="editCancelButton" title="Cancel"><i class="fa fa-times" style="font-size: 20px;"></i></a><ul class="'+ childrenListClass +'" id="children-' + item.id + '"></ul></li>';
+        }
+
         if (item.type === "custom") {
             reference = 'href=' + item.url;
-             
-
             checkBOx = '<label class="toggle-text" style="display:none;"><input label="New Tab" class="open-tab" type="checkbox" ><span>OPEN NEW TAB</span></label>'
-        
-            
-   if (item.checkItem){
+            if (item.checkItem){
                var newTab = ' target="_blank"'
                checkBOx = '<label class="toggle-text" style="display:none;"><input label="New Tab" class="open-tab" type="checkbox" checked><span >OPEN NEW TAB</span></label>'
-             
-             
-            }
-            else if (item.checkItem){
+            }else if (item.checkItem){
                 var newTab = '>'
             }
-        
-        }
-        else {
+        }else {
             collapseIcon = '<i class="fa fa-angle-right" style="font-size: 16px;"></i>';
-            (item.type != 'text') && (reference = 'href="/hc/admin/categories/' + item.id + '/edit"');
+            if(item.type != 'text'){
+                if(item.type == 'category')
+                    reference = 'href="/hc/admin/categories/' + item.id + '/edit"';
+                else
+                    reference = 'href="/hc/admin/'+ item.type +'s/' + item.id + '/edit"';
+            }
         }
 
-
-
-
-        return '<li id="' + item.id + '"><i class="fa fa-th-large"></i>' + collapseIcon + '<div class="item-name"><a class="categoryDrop ' + linkToZendesk + '" ' + reference + newTab+ '>' + item.title + '</a></div>' + checkBOx + select + children ;
-
-     
+        return '<li id="' + item.id + '"><i class="fas fa-grip-vertical"></i>' + collapseIcon + '<div class="item-name"><a class="categoryDrop ' + linkToZendesk + '" ' + reference + newTab+ '>' + item.title + '</a></div>' + checkBOx + select + children ;
     }
+
     //add either dropdown or text field base on selected type
     function addInput(type, parent) {
         var localCategories = JSON.parse(storage.getItem(HelpCenter.user.email + "-allCategories" + helpCenterVer + currentLang));
@@ -697,7 +695,7 @@ $("body").on("checked",".child-")
             $('.menuManagement #categoryDropdown').remove();
             $('.menuManagement #sectionDropdown').remove();
             $('.menuManagement input').remove();
-            parent.prepend('<input type="text" placeholder="Text..">');
+            $('<input type="text" placeholder="Text..">').insertAfter(parent.find('.editCancelButton'));
             parent.children('input[type="text"]').val(parent.children('.item-name').children('a.categoryDrop').text());
         } else if (type === "category") {
             var categoriesDrop = '<select id="categoryDropdown">';
@@ -707,35 +705,45 @@ $("body").on("checked",".child-")
             categoriesDrop += '</select>';
             parent.children('input').remove();
             $('.menuManagement #sectionDropdown').remove();
-            parent.prepend(categoriesDrop);
-            $('.menuManagement #categoryDropdown').val(parent.attr('id')).select2();
+            $(categoriesDrop).insertAfter(parent.find('.editCancelButton'));
+            console.log('test');
+            console.log(parent);
+            console.log($('.menuManagement #categoryDropdown').val(parent.attr('id')));
+            $('.menuManagement #categoryDropdown').val(parent.attr('id')).select2({
+                placeholder: "Select a category"
+            });
         } else if (type === "section") {
             var localSections = JSON.parse(storage.getItem(HelpCenter.user.email + "-allSections" + helpCenterVer + currentLang));
             var localSectionsLength = localSections.length;
             var stringedElements = '<select id="sectionDropdown">';
+
             for (var ndx = 0; ndx < localCategoriesLength; ndx++) {
-                stringedElements += '<optgroup class="' + localCategories[ndx].id + '" label="' + localCategories[ndx].name + '">';
+                var sectionOptions = '';
                 for (var index = 0; index < localSectionsLength; index++) {
                     if (localCategories[ndx].id === localSections[index].category) {
-                        stringedElements += '<option class="' + localCategories[ndx].id + '" value="' + localSections[index].id + '">' + localSections[index].name + '</option>';
-                    }
-                    if (index + 1 === localSectionsLength) {
-                        stringedElements += '</optgroup>';
+                        sectionOptions += '<option class="' + localCategories[ndx].id + '" value="' + localSections[index].id + '">' + localSections[index].name + '</option>';
                     }
                 }
+                if(sectionOptions){
+                    stringedElements += '<optgroup class="' + localCategories[ndx].id + '" label="' + localCategories[ndx].name + '">' + sectionOptions + '</optgroup>';
+                }
             }
+
             stringedElements += '</select>';
             parent.children('input').remove();
             $('.menuManagement #categoryDropdown').remove();
-            parent.prepend(stringedElements);
-            $('.menuManagement #sectionDropdown').val(parent.attr('id')).select2();
+            $(stringedElements).insertAfter(parent.find('.editCancelButton'));
+            console.log(parent);
+            console.log($('.menuManagement #categoryDropdown').val(parent.attr('id')));
+            $('.menuManagement #sectionDropdown').val(parent.attr('id')).select2({
+                placeholder: "Select a section"
+            });
             $('#sectionDropdown').children('option').wrap('<span/>')
         } else if (type === "custom") {
             parent.children('input[type="text"]').remove();
             $('.menuManagement #categoryDropdown').remove();
             $('.menuManagement #sectionDropdown').remove();
-            parent.prepend('<input type="url" placeholder="URL...">');
-            parent.prepend('<input type="text" placeholder="Text...">');
+            $('<input type="text" placeholder="Text..."><input type="url" placeholder="URL...">').insertAfter(parent.find('.editCancelButton'));
             parent.children('input[type="text"]').val(parent.find('.categoryDrop').text());
             parent.children('input[type="url"]').val(parent.find('.categoryDrop').attr('href'));
         }
@@ -751,7 +759,7 @@ $("body").on("checked",".child-")
     //update the article body
     function postData() {
         $.ajax({
-            url: "/api/v2/help_center/articles/360007566192/translations/en-us.json",
+            url: "/api/v2/help_center/articles/" + siteMap + "/translations/en-us.json",
             type: 'PUT',
             dataType: "json",
             contentType: "application/json",
@@ -767,6 +775,7 @@ $("body").on("checked",".child-")
             instantiateMenuObject();
         });
     }
+
     //create a new item
     function iniatializeNewObject(parent, position) {
         var selectedType = parent.children('select.type').val();
@@ -802,19 +811,19 @@ $("body").on("checked",".child-")
     function getCurrentPlatform(platform) {
         return platform == "mdx2" ? platform : platform == "sas" ? "mdxnxt" : platform == "newDsp" ? "newdsp" : platform == "dsp" ? platform : platform == "dmp" ? platform : platform = "supportKb" ? platform : platform;
     }
+
     //populate child elements under a category type
     function populateSections(parentDOM) {
         var stringDOM = '';
         var isFirstDrag = true;
         var categoryID = parseInt(parentDOM.children('select.type').attr('id'));
-        parentDOM.append('<ul class="sections"></ul>');
         parentDOM.children('i.fa-angle-down, i.fa-angle-right, .categoryDrop').css({
             'cursor': 'wait'
         })
         $.get("/api/v2/help_center/en-us/categories/" + categoryID + "/sections").done(function (response) {
             var sections = response.sections;
             sections.forEach(function (section) {
-                stringDOM += '<li class="child-' + section.category + '" id="' + section.id + '"><i class="fa fa-th-large"></i><i class="fa fa-angle-right" style="font-size: 16px;"></i><div class="item-name"><a class="categoryDrop link-zendesk" href="/hc/admin/sections/' + section.id + '/edit" target="_blank">' + section.name + '</a></div><select class="type" id="select-' + section.id + '">' + '<option value="section">Section</option>' + '<option value="text">Text</option>' + '<option value="category">Category</option>' + '<option value="custom">Custom</option>' + '</select><select class="visibility">' + '<option>Visible to everyone</option>' + '<option>Agents and Manager</option>' + '<option>Signed-in users</option>' + '<option>User Segment:</option>' + '</select></li>';
+                stringDOM += '<li id="' + section.id + '"><i class="fas fa-grip-vertical"></i><i class="fa fa-angle-right" style="font-size: 16px;"></i><div class="item-name"><a class="categoryDrop link-zendesk" href="/hc/admin/sections/' + section.id + '/edit" target="_blank">' + section.name + '</a></div><select class="type" id="select-' + section.id + '">' + '<option value="section">Section</option>' + '<option value="text">Text</option>' + '<option value="category">Category</option>' + '<option value="custom">Custom</option></select>' + '</li>';
             })
             parentDOM.children('ul').append(stringDOM);
             for (var ndx = 0; ndx < sections.length; ndx++) {
@@ -841,6 +850,7 @@ $("body").on("checked",".child-")
                                 }
                             })
                         }
+
                         parentDOM.find("#" + sections[x].id).append('<a class="section-visibility"><i class="fa ' + eye + '" style="font-size: 20px;" title="' + title + '"></i></a>');
                         hidden && (parentDOM.find("#" + sections[x].id).children(".item-name").children(".categoryDrop").addClass("lineTrough"));
                         var isAllDraft = allDraft(data.articles);
@@ -855,13 +865,14 @@ $("body").on("checked",".child-")
                     })
                 })(ndx)
             }
-            parentDOM.children('ul.sections').nestedSortable({
+
+            parentDOM.children('ul').nestedSortable({
                 disableParentChange: true,
                 protectRoot: true,
                 items: '> li',
                 placeholder: 'ui-state-highlight',
                 listType: 'ul',
-                handle: '.fa-th-large',
+                handle: '.fa-grip-vertical',
                 relocate: function (event, ui) {
                     var domIndex = $('#mainUL #' + ui.item[0].id).index();
                     var index = sections.findIndex(function (item) {
@@ -937,8 +948,10 @@ $("body").on("checked",".child-")
         parentELement.children('i.fa-angle-down, i.fa-angle-right, .categoryDrop').css({
             'cursor': 'wait'
         })
+        if(!parentELement.children('ul.articles').length){
+            parentELement.append('<ul class="articles"></ul>')
+        }
         articles = [];
-        parentELement.append('<ul class="articles"></ul>');
         getArticle();
 
         function getArticle() {
@@ -963,14 +976,14 @@ $("body").on("checked",".child-")
                                 lineTrough = "lineTrough";
                             }
                         }
-                        var stringifiedElements = '<li id="' + data.articles[i].id + '" class="menu-admin-article"><i class="fa fa-th-large"></i></i><div class="item-name"><a class="article ' + lineTrough + ' link-zendesk" href="https://sizmek.zendesk.com/knowledge/articles/' + data.articles[i].id + '" target="_blank">' + data.articles[i].name + '</a></div>' + articlePlatfromTag + '<select class="type" disabled><option value="article">Article</option><option value="text">Text</option><option value="category">Category</option><option value="section">Section</option><option value="custom">Custom</option></select><a class="article-visibility" title="' + title + '"><i class="fa ' + eye + '" style="font-size: 20px;"></i></a><ul style="display:none;"></ul></li>';
+                        var stringifiedElements = '<li id="' + data.articles[i].id + '" class="menu-admin-article"><i class="fas fa-grip-vertical"></i></i><div class="item-name"><a class="article ' + lineTrough + ' link-zendesk" href="'+ zendeskEditorURL +'/articles/' + data.articles[i].id + '" target="_blank">' + data.articles[i].name + '</a></div>' + articlePlatfromTag + '<select class="type" disabled><option value="article">Article</option><option value="text">Text</option><option value="category">Category</option><option value="section">Section</option><option value="custom">Custom</option></select><a class="article-visibility" title="' + title + '"><i class="fa ' + eye + '" style="font-size: 20px;"></i></a><ul style="display:none;"></ul></li>';
                         if (!labelList.includes('LOC_1') && !labelList.includes('LOC_2') && !labelList.includes('LOC_3') && !labelList.includes('LOC_4') && !labelList.includes('LOC_5')) {
                             parentELement.children('ul').addClass('LOC_1').append(stringifiedElements);
                             loc1 = data.articles[i].id, loc2 = 0, loc3 = 0, loc4 = 0;
                         } else if (labelList.includes('LOC_2')) {
                             loc2 = data.articles[i].id, loc3 = 0, loc4 = 0;
                             $('#mainUL #' + loc1).children('ul').addClass('LOC_2').append(stringifiedElements);
-                            $('#mainUL #' + loc1).children('i.fa.fa-angle-right').length === 0 && ($('<i class="fa fa-angle-right" style="font-size: 16px;"></i>').insertAfter($('#mainUL #' + loc1).children('i.fa.fa-th-large')),
+                            $('#mainUL #' + loc1).children('i.fa.fa-angle-right').length === 0 && ($('<i class="fa fa-angle-right" style="font-size: 16px;"></i>').insertAfter($('#mainUL #' + loc1).children('i.fa.fa-grip-vertical')),
                                 $('#mainUL #' + loc1).children('a.article').css('padding-left', '0px'));
                         } else if (labelList.includes('LOC_3')) {
                             loc3 = data.articles[i].id, loc4 = 0;
@@ -979,7 +992,7 @@ $("body").on("checked",".child-")
                                 loc3ParentID = loc1;
                             }
                             $('#mainUL #' + loc3ParentID).children('ul').addClass('LOC_3').append(stringifiedElements);
-                            $('#mainUL #' + loc3ParentID).children('i.fa.fa-angle-right').length === 0 && ($('<i class="fa fa-angle-right" style="font-size: 16px;"></i>').insertAfter($('#mainUL #' + loc3ParentID).children('i.fa.fa-th-large')),
+                            $('#mainUL #' + loc3ParentID).children('i.fa.fa-angle-right').length === 0 && ($('<i class="fa fa-angle-right" style="font-size: 16px;"></i>').insertAfter($('#mainUL #' + loc3ParentID).children('i.fa.fa-grip-vertical')),
                                 $('#mainUL #' + loc3ParentID).children('a.article').css('padding-left', '0px'));
                         } else if (labelList.includes('LOC_4')) {
                             var loc4ParentID = loc3;
@@ -990,7 +1003,7 @@ $("body").on("checked",".child-")
                                 loc4ParentID = loc1;
                             }
                             $('#mainUL #' + loc4ParentID).children('ul').addClass('LOC_4').append(stringifiedElements);
-                            $('#mainUL #' + loc4ParentID).children('i.fa.fa-angle-right').length === 0 && ($('<i class="fa fa-angle-right" style="font-size: 16px;"></i>').insertAfter($('#mainUL #' + loc4ParentID).children('i.fa.fa-th-large')),
+                            $('#mainUL #' + loc4ParentID).children('i.fa.fa-angle-right').length === 0 && ($('<i class="fa fa-angle-right" style="font-size: 16px;"></i>').insertAfter($('#mainUL #' + loc4ParentID).children('i.fa.fa-grip-vertical')),
                                 $('#mainUL #' + loc4ParentID).children('a.article').css('padding-left', '0px'));
                         }
                     }
@@ -1002,14 +1015,14 @@ $("body").on("checked",".child-")
                     var oldLOC = '';
                     $('ul.articles').nestedSortable({
                         forcePlaceholderSize: true,
-                        expandOnHover: 100,
+                        expandOnHover: 150,
                         items: 'li',
                         placeholder: 'ui-state-highlight',
                         maxLevels: 5,
                         listType: 'ul',
                         opacity: 1,
                         isTree: true,
-                        handle: '.fa-th-large',
+                        handle: '.fa-grip-vertical',
                         isAllowed: function (placeholder, placeholderParent, currentItem) {
                             if (placeholder.parents('ul.articles').length) {
                                 return true;
@@ -1097,14 +1110,14 @@ $("body").on("checked",".child-")
                     articleTags += '<span class="kbsas disabled">SAS</span>'
                 }
             }
-            if (tags[index].includes('newdsp') && !(tags[index].includes('DT'))) {
+            if (tags[index] == 'newdsp' && !(tags[index].includes('DT'))) {
                 articleTags += '<span class="newdsp enabled">NEW DSP</span>'
-            } else if (tags[index].includes('newdsp') && tags[index].includes('DT')) {
+            } else if (tags[index] == 'newdsp' && tags[index].includes('DT')) {
                 articleTags += '<span class="newdsp disabled">NEW DSP</span>'
             }
-            if (tags[index].includes('dsp') && !(tags[index].includes('DT'))) {
+            if (tags[index] == 'dsp' && !(tags[index].includes('DT'))) {
                 articleTags += '<span class="dsp enabled">DSP</span>'
-            } else if (tags[index].includes('dsp') && tags[index].includes('DT')) {
+            } else if (tags[index] == 'dsp' && tags[index].includes('DT')) {
                 articleTags += '<span class="dsp disabled">DSP</span>'
             }
             if (tags[index].includes('dmp') && !(tags[index].includes('DT'))) {
@@ -1149,7 +1162,7 @@ $("body").on("checked",".child-")
         return parentULUntilMain.length < 1 ? "" : "LOC_" + (parentULUntilMain.length + 1);
     }
 
-    //use to generate a unique id for text type only
+    //use to generate a unique id for text item only
     function uuidv4() {
         return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, function (a) {
             return (a ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> a / 4).toString(16);

@@ -26,9 +26,8 @@ var kbTags = ["topic", "article", "issue"];
 $(function() {
 
     //load menu site-map article - we should move HC version label to this article for single request
-    $.get('/api/v2/help_center/en-us/articles/360017844052').done(function(data) {
-
-        var menuObject = JSON.parse(data.article.body);
+    $.get('/api/v2/help_center/en-us/articles/'+ siteMap).done(function(data) {
+        var menuObject = JSON.parse(strip_html_tags(data.article.body));
 
 
         //check string exist in current URL
@@ -39,7 +38,7 @@ $(function() {
 
 
         //load current helpcenter cache version number
-        $.getJSON("/api/v2/help_center/" + currentLang + "/articles/206321873.json").done(function(gate) {
+        $.getJSON("/api/v2/help_center/" + currentLang + "/articles/" + unSupportedBrowser +".json").done(function(gate) {
 
             if (document.all && !document.addEventListener) {
 
@@ -163,9 +162,6 @@ $(function() {
             ga("set", "dimension2", userEmail);
             ga("set", "dimension3", usersName);
 
-            //google analytics
-            ga('send', 'pageview');
-
             //redirect to home for any of below pages
             //help center admin category 200768493
             //important messages section 201341126
@@ -286,7 +282,6 @@ $(function() {
                         articleRect = articleBox.getBoundingClientRect(),
                         tocBox = $tocRect[0];
                     //var tocBox.style.setProperty('display', 'block');
-                    //console.log(">>>>>", tocBox);
 
                     tocRect = tocBox.getBoundingClientRect();
 
@@ -533,7 +528,7 @@ $(function() {
                         storage.removeItem("manualPlatTrigger"), storage.setItem("global-filterSetting", $(this).attr("value"));
 
                         //if not search page, redirect to the newly selected platform homepage
-                        if (!cookieFilter && !isInURL("/search?")) window.location = "https://support.sizmek.com/hc/";
+                        if (!cookieFilter && !isInURL("/search?")) window.location = mainURL;
 
                         //if search result page, reload current page
                         else if (isInURL("/search?")) location.reload();
@@ -542,7 +537,6 @@ $(function() {
                         else cookieFilter = false;
 
                     } else if (isInURL("/articles/")) {
-
                         //possible redundant codes??
                         //var artPlatform = "";
 
@@ -554,7 +548,11 @@ $(function() {
 
                             //store article labels
                             artTags = res.article.label_names;
-
+                            currSectionID = res.article.section_id;
+                            $.get("/api/v2/help_center/" + currentLang + "/sections/" + currSectionID + ".json").done(function(resData) {
+                                getNavCatId = resData.section.category_id;
+                                addSectionToList(currSectionID);
+                            })
                             //check platform value in storage and switch platform to designated platform of the article 
                             switchPlatform(artTags, prevPlat);
 
@@ -572,7 +570,8 @@ $(function() {
 
                         //for category page view, store current category ID
                         var catID = currPageURL.split("categories/")[1].split("#")[0].split("-")[0].split("?")[0];
-
+                        getNavCatId = catID;
+                        addSectionToList();
                         //load the current category data from API
                         $.get("/api/v2/help_center/" + currentLang + "/categories/" + catID + ".json").done(function(res) {
 
@@ -593,7 +592,8 @@ $(function() {
 
                             //get section description to retrieve platform value
                             var secTags = res.section.description;
-
+                            getNavCatId = res.section.category_id;
+                            addSectionToList(res.section.id);
                             //don't we need to parse it??
                             switchPlatformCat(secTags, prevPlat);
                         });
@@ -1128,8 +1128,7 @@ $(function() {
                             var additionalResources = currentProduct.pop();
 
                             for (var i = 0; i < currentProduct.length; i++) {
-
-                                if (currentProduct[i].v) {
+                                if (currentProduct[i] && currentProduct[i].v) {
 
                                     if (currentProduct[i].type === "text") {
 
@@ -1137,7 +1136,7 @@ $(function() {
 
                                         for (var x = 0; x < currentProduct[i].children.length; x++) {
 
-                                            if (currentProduct[i].children[x].v) {
+                                            if (currentProduct[i].children[x] && currentProduct[i].children[x].v) {
 
                                                 if (currentProduct[i].children[x].type === "category") stringifiedElements += initializeCategory(currentProduct[i].children[x]);
                                                 else if (currentProduct[i].children[x].type === "section") stringifiedElements += initializeSection(currentProduct[i].children[x]);
@@ -1166,12 +1165,12 @@ $(function() {
 
                                 for (var index = 0; index < additionalResources.children.length; index++) {
                                     if (additionalResources.children[index].v)
-                                    var target = '';
-                                    if(additionalResources.children[index].checkItem){
+                                        var target = '';
+                                    if (additionalResources.children[index].checkItem) {
                                         target = ' target="_blank"';
                                     }
                                     stringifiedElements += '<li class="section" id="' + additionalResources.children[index].id + '">' +
-                                            '<a class="sectionDrop" href="' + additionalResources.children[index].url + '" '+ target+' title="' + additionalResources.children[index].title + '">' + additionalResources.children[index].title + '</a></li>'
+                                        '<a class="sectionDrop" href="' + additionalResources.children[index].url + '" ' + target + ' title="' + additionalResources.children[index].title + '">' + additionalResources.children[index].title + '</a></li>'
                                 }
                             }
 
@@ -1194,6 +1193,9 @@ $(function() {
 
                         //send platform to google analytics
                         ga("set", "dimension4", gaPlatform);
+
+                        //google analytics
+                        ga('send', 'pageview');
                     }
 
                     function initializeCategory(category) {
@@ -1889,7 +1891,6 @@ $(function() {
             }
 
             function postAddSectionToList(originalSectionID) {
-
                 getnavSecId = originalSectionID;
 
                 selectSecId = $("#" + getnavSecId).children("ul.sub-group-list");
@@ -1900,7 +1901,6 @@ $(function() {
                         selectSecId = $("#" + getnavSecId).children("ul.sub-group-list");
                     }, 200);
                 }
-
                 instantiateTree();
             }
 
@@ -2330,7 +2330,6 @@ $(function() {
             var secloadstatus = 0;
 
             function addSectionToList(sectionID) {
-
                 var plat = $("#switchTag").val();
 
                 selectCatId = $("#nav-list #" + getNavCatId);
@@ -2347,19 +2346,21 @@ $(function() {
 
                 if (currentUser !== "anonymous") {
 
-                    $(selectCatId).find("i.fa").addClass("fa-circle-o-notch fa-spin faLoader");
+                    $(selectCatId).find("i.fa").addClass("fas fa-circle-notch fa-spin faLoader");
 
                     $("a.categoryDrop").prop("disabled", true);
                     $("i#icon-category").prop("disabled", true);
                 }
                 $.each(navsecArray, function(i, section) {
-
-                    if (section.description.indexOf("hidden") === -1 && section["category"] == getNavCatId && section["description"].indexOf(hidePlat) == -1) {
-
+                    var isSectionDescValid = true;
+                    if(section.description){
+                        if(section.description.indexOf("hidden") || section["description"].indexOf(hidePlat)){
+                            isSectionDescValid = false;
+                        }
+                    }
+                    if (isSectionDescValid && section["category"] == getNavCatId) {
                         chkinit++;
-
                         $.getJSON("/api/v2/help_center/articles/search.json?section=" + section["id"]).done(function(articles) {
-
                             var isSectionValid = false;
                             var selectedPlatform = $("#switchTag").val(),
                                 currPlat = selectedPlatform,
@@ -2385,44 +2386,41 @@ $(function() {
                                         break;
                                     }
                                 }
-                            }
-
+                            }  
                             if (isSectionValid) {
                                 var title = cleanTextOnly(cleanTextOnly(section["name"]));
                                 sArr.push(['<li class="section" id="' + section["id"] + '"><i id="icon-section" class="fa fa-angle-right"> </i> <a title="' + title + '" class="sectionDrop">' + cleanTextOnly(section["name"]) + '</a><ul class="sub-group-list" style="overflow: hidden; display:none;"></ul></li>', section.position])
                             }
-
                             chkcomplete++;
-
                             if (chkinit == chkcomplete) {
                                 sArr.sort(function(a, b) {
                                     return a[1] - b[1]
                                 });
+
                                 $.each(sArr, function(i, v) {
                                     $("#nav-list").find(selectCatId).find(".group-list").append(v[0]);
                                 })
                                 $("#nav-list").find(selectCatId).find(".group-list").slideDown();
 
-                                $(selectCatId).find("i.fa").removeClass("fa-circle-o-notch fa-spin faLoader");
+                                
 
                                 $("a.categoryDrop").prop("disabled", false);
                                 $("i#icon-category").prop("disabled", false);
 
                                 postAddSectionToList(sectionID);
-
-                                if (isInURL("/categories")) {
-                                    openCategory();
-                                }
                                 if (isSectionPage) {
                                     openSection();
                                 }
                             }
+                            $(selectCatId).find("i.fa").removeClass("fas fa-circle-notch fa-spin faLoader");
                         })
                     }
                 });
+                if (isInURL("/categories")) {
+                    openCategory();
+                }
                 secloadstatus = 0;
             }
-
             $("#nav-list").on("click", "i#icon-category", function() {
                 if (secloadstatus == 0)
                     if ($(this).nextAll("ul").eq(0).find("li").length == 0) {
@@ -2434,7 +2432,6 @@ $(function() {
                         }
                     } else secloadstatus = 0;
             });
-
             $("#nav-list").on("click", "a.categoryDrop", function() {
                 if (secloadstatus == 0)
                     if ($(this).nextAll("ul").eq(0).find("li").length == 0) {
@@ -2457,7 +2454,7 @@ $(function() {
                         if ($("#nav-list").find(selectSecId).length) {
                             if (artloadstatus == 0) {
                                 if ($(selectSecId).find("loader").length) {} else {
-                                    $("#" + getnavSecId).find("i.fa").addClass("fa-circle-o-notch fa-spin faLoader");
+                                    $("#" + getnavSecId).find("i.fa").addClass("fas fa-circle-notch fa-spin faLoader");
                                 }
                                 $("a.sectionDrop").prop("disabled", true);
                                 $("i#icon-section").prop("disabled", true);
@@ -2479,7 +2476,7 @@ $(function() {
                         if ($("#nav-list").find(selectSecId).length) {
                             if (artloadstatus == 0) {
                                 if ($(selectSecId).find("loader").length) {} else {
-                                    $("#" + getnavSecId).find("i.fa").addClass("fa-circle-o-notch fa-spin faLoader");
+                                    $("#" + getnavSecId).find("i.fa").addClass("fas fa-circle-notch fa-spin faLoader");
                                 }
                                 $("a.sectionDrop").prop("disabled", true);
                                 $("i#icon-section").prop("disabled", true);
@@ -2493,7 +2490,6 @@ $(function() {
             });
 
             function waitLoadContent(element) {
-
                 var currArticleID = "";
 
                 if (isInURL("/articles/")) currArticleID = currPageURL.split("articles/")[1].split("#")[0].split("-")[0].split("?")[0];
@@ -2562,19 +2558,19 @@ $(function() {
             function checkHelpTopicAvail() {
 
                 if (sessionStorage.getItem('hasHT') == null) {
-                    $.get("/api/v2/help_center/" + currentLang + "/categories/360000029551/sections.json").done(function(res) {
+                    $.get("/api/v2/help_center/" + currentLang + "/categories/"+ gSZMKHelpTopicCatID +"/sections.json").done(function(res) {
                         if (res.sections.length > 0) {
                             sessionStorage.setItem('hasHT', 1);
                         } else {
                             sessionStorage.setItem('hasHT', 0);
-                            $("li.category#360000029551").remove();
+                            $("li.category#"+gSZMKHelpTopicCatID).remove();
                         }
                     });
 
                 } else {
                     var hasHelpTopics = sessionStorage.getItem('hasHT');
                     if (hasHelpTopics == 0) {
-                        $("li.category#360000029551").remove();
+                        $("li.category#"+gSZMKHelpTopicCatID).remove();
                     }
                 }
             }
@@ -2641,7 +2637,6 @@ $(function() {
             }
 
             function highlightTitle() {
-
                 if (window.location.href.indexOf("articles/") > 0) {
 
                     var currArticleId = window.location.href.split("articles/")[1].split("#")[0].split("-")[0].split("?")[0];
@@ -2809,18 +2804,14 @@ $(function() {
             formatSideBar();
 
             function instantiateTree() {
-
                 var navsectionArray = [];
-
                 selectSecId = $("#" + getnavSecId).find(".sub-group-list");
                 currSectionId = getnavSecId;
                 treelist = $(".treelist");
                 navsectionApiURL = "/api/v2/help_center/" + currentLang + "/sections/" + currSectionId + "/articles.json?sort_by=position&sort_order=asc";
-
                 if (currSectionId !== 201949563 && currSectionId !== undefined) loadnavsectiontree();
 
                 function loadnavsectiontree() {
-
                     if (sessionStorage.getItem(HelpCenter.user.email + "-Tree-" + currSectionId + helpCenterVer + currentLang) === null) {
 
                         $.get(navsectionApiURL).done(function(data) {
@@ -2847,7 +2838,7 @@ $(function() {
                                 addIcons();
                                 AddListToggle();
                                 groupArticleList();
-                                $("#" + currSectionId).find("i.fa").removeClass("fa-circle-o-notch fa-spin faLoader");
+                                $("#" + currSectionId).find("i.fa").removeClass("fas fa-circle-notch fa-spin faLoader");
                                 NavArtArrayready = 1;
                                 artloadstatus = 0;
                                 highlightTitle();
@@ -2855,9 +2846,7 @@ $(function() {
                                 $("i#icon-section").prop("disabled", false);
                             }
                         });
-
                     } else {
-
                         navsectionArray = JSON.parse(sessionStorage.getItem(HelpCenter.user.email + "-Tree-" + currSectionId + helpCenterVer + currentLang));
 
                         CreateArticleList();
@@ -2866,7 +2855,7 @@ $(function() {
                         AddListToggle();
                         groupArticleList();
 
-                        $("#" + currSectionId).find("i.fa").removeClass("fa-circle-o-notch fa-spin faLoader");
+                        $("#" + currSectionId).find("i.fa").removeClass("fas fa-circle-notch fa-spin faLoader");
 
                         NavArtArrayready = 1;
                         artloadstatus = 0;
@@ -2905,7 +2894,8 @@ $(function() {
 
                 //redundant vars Pix and Ar??
                 //var Pix, Ar;
-                var articleParentID;
+                //var articleParentID;
+                var locParent;
 
                 function CreateArticleList() {
 
@@ -2917,12 +2907,17 @@ $(function() {
 
                         if (labels.length > 0)
                             for (var hasLoc = 0, x = 0; x < labels.length && hasLoc == 0; x++)
-                                if (labels[x].toLowerCase().indexOf("loc") > -1 && labels[x].toLowerCase().indexOf("loc_parent") < 0) {
-                                    locLevel = parseInt(labels[x].replace(/\D+/g, ""));
-                                    hasLoc = 1
+                                if (labels[x].toLowerCase().indexOf("loc") > -1) {
+                                    hasLoc = 1;
+                                    if (labels[x].toLowerCase().indexOf("loc_parent") < 0) {
+                                        locLevel = parseInt(labels[x].replace(/\D+/g, ""));
+                                        locParent = 0;
+                                    } else {
+                                        locParent = 1;
+                                    }
                                 }
 
-                        return locLevel;
+                        return [locLevel, locParent];
                     }
                     var parentIDArr = [];
 
@@ -2950,14 +2945,18 @@ $(function() {
                             a = "";
 
                             var parentID;
-                            var currentArtLevel = extractLocLevel(labelArray);
+                            var locResult = extractLocLevel(labelArray);
+                            var currentArtLevel = locResult[0];
+                            var currentArtP = locResult[1];
                             var currentID = value.id;
 
                             if (idx <= navsectionArray.length - 2) {
 
                                 var nextLabels = navsectionArray[idx + 1].label_names;
                                 var nextArtLabels = nextLabels.toString().split(",");
-                                var nextArtLevel = extractLocLevel(nextArtLabels);
+                                var locResultNext = extractLocLevel(nextArtLabels);
+                                var nextArtLevel = locResultNext[0];
+                                var nextArtP = locResultNext[1];
 
                                 if (currentArtLevel == nextArtLevel) {
                                     if (currentArtLevel == 1) {
@@ -3020,6 +3019,13 @@ $(function() {
                             var txtNode = document.createTextNode(value.name);
 
                             anchorElem.className = "nav-line", anchorElem.id = value.id, anchorElem.href = value.url, anchorElem.title = value.name, anchorElem.appendChild(txtNode);
+
+                            if (currentArtP) {
+                                anchorElem.href = "javascript:void(0); ";
+                                $(anchorElem).click(function() {
+                                    this.previousSibling.click();
+                                });
+                            }
 
                             var listElem = document.createElement("li")
 
@@ -3122,22 +3128,41 @@ $(function() {
             }
 
             function openCategory() {
-
-                if ($(".category[id=" + currCatId + "]").find("ul.group-list > li").length) {
-
-                    $(".category[id=" + currCatId + "]").find("i").eq(0).attr("class", "fa fa-angle-down");
-
-                    $(this).find("ul.group-list").css({
-                        "display": "block",
-                        "overflow": "hidden"
-                    });
-
-                    $(".category[id=" + currCatId + "]").find("a").eq(0).css({
+                var categoryListItem = $("#" + getNavCatId);
+                if (categoryListItem.length) {
+                    categoryListItem.parent().css('display', 'block');
+                    categoryListItem.find('.categoryDrop').css({
                         "color": "#FFF",
                         "font-weight": "bold"
                     });
+                } else {
+                    setTimeout(openCategory, 100);
+                }
+            }
 
-                    $(".category[id=" + currCatId + "]").parent().css("display", "block");
+
+
+            function openSection() {
+                selectCatId = $("#" + getNavCatId);
+                if (selectCatId.length) {
+                    selectCatId.parent().show();
+                    if (!selectCatId.children("ul").children('li').length) {
+                        selectCatId.children("#icon-category").click();
+                    }
+                    getnavSecId = originalSectionID;
+                    selectSecId = $("#" + getnavSecId).find(".sub-group-list");
+                    $("#nav-list li[id=" + originalSectionID + "]").children("a").css({
+                        "color": "#FFF",
+                        "font-weight": "bold"
+                    });
+                    if (!originalSectionID) {
+                        instantiateTree();
+                    }
+                    if (selectCatId.parent("#nav-list").length == 1) {} else {
+                        selectCatId.parent().parent().children("ul").css("display", "block");
+                    }
+                } else {
+                    setTimeout(arguments.callee, 200);
                 }
             }
 
@@ -3179,12 +3204,10 @@ $(function() {
                         $("#caseExamples, #relatedTicketsTable, #relatedTicketsTable-header, #relatedTicketsTable-footer").show();
                         styleTicketTable();
                     }
-
                 })
             }
 
             if ($(".header").html().indexOf("Message Board") < 0 && currentUser !== "end_user" && currentUser !== "anonymous" && isInURL("/articles/") && !isInURL("209729503")) {
-
                 if ($("body:contains('Case Examples')").length == 0) $('<h2 id="caseExamples">Case Examples</h2><table></table>').insertBefore("body .article-attachments:last");
                 if ($("h2:contains('Case Examples')").next("p").length > 0) $("h2:contains('Case Examples')").next("p").remove();
                 if ($("h2:contains('Case Examples')").next("br").length > 0) $("h2:contains('Case Examples')").next("br").remove();
