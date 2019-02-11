@@ -1,12 +1,11 @@
 // Author: Sizmek Global Support Intern - Kyrl Limitares & Yves Denzel
-// Ver 1.15
+// Ver 1.17
 $(document).ready(function() {
     var currentUser = HelpCenter.user.role;
     var localStorage = window.localStorage;
     var platforms = JSON.parse(localStorage.getItem("platforms"));
     var platform_url = window.location.href.split("/");
     var platform_id = platform_url[platform_url.length - 1].split("-", 1).toString();
-
 
     if (window.location.href.indexOf("categories/" + messageBoardCategory) > -1 || jQuery.inArray(platform_id, platforms) !== -1) {
         $('.section-tree').html("");
@@ -26,7 +25,7 @@ $(document).ready(function() {
             section = '',
             currentInternalIncidentID = 0,
             currentInternalIncidentTitle = '',
-            viewedIncidentTitle = '';
+            viewedIncidentTitle = '',
             sasNumPage = 0,
             mdxNumPage = 0,
             dspNumPage = 0,
@@ -35,14 +34,20 @@ $(document).ready(function() {
             internalNumPage = 0,
             allPlatforms = [],
             postRequests = [],
-            userSegments = [];
+            userSegments = [],
+            mSegmentChanged = false,
+            internalSegmentChanged = false,
+            externalSegmentChanged = false,
+            internalIncident = "",
+            newIncidentIDs = [],
+            relatedIncidentRequests = [];
 
         if (localStorage.getItem("category")) {} else {
             localStorage.setItem("category", message_board_loc);
         }
 
         if (window.location.href.indexOf("categories/" + message_board_loc) > -1) {
-            $('.sub-nav').after('<img class="component-loader" src="'+ gSZMKspingreyGIFURL +'" style="margin-top:85px"/><div class="main-components-container" style="width:1000px"></div>')
+            $('.sub-nav').after('<img class="component-loader" src="' + gSZMKspingreyGIFURL + '" style="margin-top:85px"/><div class="main-components-container" style="width:1000px"></div>')
         }
 
         $('.dropdown-toggle').removeAttr('href');
@@ -85,18 +90,159 @@ $(document).ready(function() {
             $('#loader-container').removeClass('hide');
         }
 
-        function getUserSegments(){
+        function getUserSegments() {
             return $.get('/api/v2/help_center/user_segments.json');
         }
 
-        //
-        function getUserSegmentsSelect(){
-            var segmentsSelect = '<select class="segments-select"><option>Everyone</option>';
-            userSegments.forEach(function(segment){
-                segmentsSelect +='<option value="'+ segment.id+'">'+segment.name+'</option>'
+        //return a string select dropdown based on current user segments
+        function getUserSegmentsSelect() {
+            var segmentsSelect = '<select class="segments-select">';
+            userSegments.forEach(function(segment) {
+                segmentsSelect += '<option value="' + segment.id + '">' + segment.name + '</option>'
             });
             return segmentsSelect + '</select>';
-        }   
+        }
+
+        function updateUserSegment(articleID, userSegmentID) {
+            return {
+                url: '/api/v2/help_center/articles/' + articleID,
+                type: 'PUT',
+                data: {
+                    "article": {
+                        "user_segment_id": userSegmentID
+                    }
+                }
+            }
+        }
+
+        function updateArticleTitle(incidentID, title) {
+            return {
+                url: '/api/v2/help_center/articles/' + incidentID + '/translations/en-us.json',
+                type: 'PUT',
+                data: {
+                    "translation": {
+                        "title": title
+                    }
+                }
+            }
+        }
+
+        function addArticleLabel(articleID, labelName) {
+            return {
+                url: '/api/v2/help_center/articles/' + articleID + '/labels.json',
+                type: 'POST',
+                data: {
+                    "label": {
+                        "name": labelName
+                    }
+                }
+            }
+        }
+
+        function deleteArticleLabel(articleID, labelID) {
+            return {
+                url: '/api/v2/help_center/articles/' + articleID + '/labels/' + labelID + '.json',
+                type: 'DELETE'
+            }
+        }
+
+        function addArticleComment(articleID, commentBody, notifySubscribers) {
+            return {
+                url: '/api/v2/help_center/articles/' + articleID + '/comments.json',
+                type: 'POST',
+                data: {
+                    "comment": {
+                        "body": commentBody,
+                        "author_id": globalsupport_user_id,
+                        "locale": "en-us"
+                    },
+                    "notify_subscribers": notifySubscribers
+                }
+            }
+        }
+
+
+        function initRequests(arrReqs, idx, callbackFn) {
+            console.log("\nRequest: ", arrReqs[idx]);
+            $.ajax(arrReqs[idx]).done(function(data) {
+                console.log('Status: %c Success ', 'background:#222; color:#00ff00');
+                if (arrReqs[idx].type.toLowerCase() !== "delete") console.log("Response: ", data);
+                if (idx < arrReqs.length - 1) {
+                    initRequests(arrReqs, idx + 1, callbackFn);
+                } else {
+                    callbackFn();
+                }
+            }).fail(function(data) {
+                console.log('Status: %c Error ', 'background:#222; color:#ff0000');
+                console.log("Response", data);
+            })
+        }
+
+        function startRequest(requests, ndx, callbackFn) {
+            console.log("\nRequest: ", requests[ndx]);
+            var isCreateIncident = false;
+            if (requests[ndx].action) { //check if it is an Create Article Request
+                delete requests[ndx].action;
+                isCreateIncident = true;
+            }
+            //start request
+            $.ajax(requests[ndx]).done(function(data) {
+                if (isCreateIncident) {
+                    newIncidentIDs.push(data.article.id);
+                }
+                console.log('Status: %c Success ', 'background:#222; color:#00ff00');
+                if (requests[ndx].type.toLowerCase() !== "delete") console.log("Response: ", data);
+                if (ndx < requests.length - 1) {
+                    startRequest(requests, ndx + 1, callbackFn);
+                } else {
+                    postRequests = [];
+                    console.log(internalIncident);
+                    if (internalIncident != "") {
+                        newIncidentIDs.push(internalIncident.id);
+                    }
+                    addRelatedIncidents(newIncidentIDs, 0, callbackFn);
+                }
+            }).fail(function(data) {
+                console.log('Status: %c Error ', 'background:#222; color:#ff0000');
+                console.log("Response", data);
+            })
+        }
+
+        function addRelatedIncidents(arrID, ndx, callback) {
+            if (ndx < arrID.length) {
+                var relatedIncidents = arrID.filter(function(id) {
+                    return id !== arrID[ndx];
+                });
+                if (relatedIncidents.length) {
+                    relatedIncidentRequests.push(addArticleLabel(arrID[ndx], "RelatedIncidents:" + relatedIncidents.join(' ')));
+                    addRelatedIncidents(arrID, ndx + 1, callback);
+                } else {
+                    newIncidentIDs = [];
+                    relatedIncidentRequests = [];
+                    callback(arrID[ndx]);
+                }
+            } else {
+                initRelatedIncidents(relatedIncidentRequests, 0, callback, arrID[ndx]);
+            }
+        }
+
+        function initRelatedIncidents(reqArray, ndx, callbackFn, articleID) {
+            console.log("\nRequest: ", reqArray[ndx]);
+            $.ajax(reqArray[ndx]).done(function(data) {
+                console.log('Status: %c Success ', 'background:#222; color:#00ff00');
+                if (reqArray[ndx].type.toLowerCase() !== "delete") console.log("Response: ", data);
+                if (ndx < reqArray.length - 1) {
+                    initRelatedIncidents(reqArray, ndx + 1, callbackFn, articleID);
+                } else {
+                    newIncidentIDs = [];
+                    relatedIncidentRequests = [];
+                    callbackFn(articleID);
+                }
+            }).fail(function(data) {
+                console.log('Status: %c Error ', 'background:#222; color:#ff0000');
+                console.log("Response", data);
+            })
+        }
 
         if (HelpCenter.user.locale) {
             $.get('/api/v2/help_center/' + HelpCenter.user.locale + '/categories/' + message_board_loc + '/sections.json').done(function(platforms) {
@@ -231,8 +377,8 @@ $(document).ready(function() {
                     })
                 }
             });
-            getUserSegments().done(function(data){
-                userSegments = data.user_segments; 
+            getUserSegments().done(function(data) {
+                userSegments = data.user_segments;
             })
         } else {
             $(".component-loader").remove();
@@ -271,8 +417,8 @@ $(document).ready(function() {
             $(this).html('Past Incidents <span style="font-family:arial">→</span>');
         });
         $('main').not(".messageBoard").append('<div class="incident-view-page"></div>');
-        //jQuery.inArray("view_support_content", HelpCenter.user.tags) !== -1
-        if (true) { //user_apac
+        //
+        if (jQuery.inArray("view_support_content", HelpCenter.user.tags) !== -1) { //user_apac
             // APPENDS
             var createIncidentModal = '<div class="modal" id="create-incident-modal"> <div class="modal-content"> <div class="modal-header"><button class="close close-modal">X</button><h1>Create an Incident</h1><div class="select-template"><select class="select-picker select-template-dropdown" name="Select Template"> <option class="template" value="none">Use Template</option> </select> </div></div><div class="modal-body"> <div class="modal-body-detail components-affected"> <label>Components Affected</label> <div class="component-container"> </div></div><h1 style="font-size: 20px;font-weight: 400;">Messaging</h1><br><div class="modal-body-detail incident-name"> <label>Title</label> <br><input type="text" id="incident-name" name="" placeholder="Incident Title"><span class="info"></span> </div><div class="modal-body-detail incident-severity"><label>Severity</label><br><select><option value="1">Operational</option><option value="3">Degraded Performance</option><option value="4">Minor Outage</option><option value="5">Major Outage</option></select></div><div class="modal-body-detail incident-status"> <label>Status</label> <div class="status-choices"> <input type="radio" name="iInvestigating" value="Investigating"><span class="radio-label">Investigating</span> <input type="radio" name="iIdentified" value="Identified"><span class="radio-label">Identified</span> <input type="radio" name="iMonitoring" value="Monitoring"><span class="radio-label">Monitoring</span> <input type="radio" name="iResolved" value="Resolved"><span class="radio-label">Resolved</span> </div></div><div class="modal-body-detail incident-message"> <div style="padding: 20px;border: 1px solid #ababab;border-radius: 5px;background-color: #fffdf6;" id="iInternal"><label class="gswitch"><input type="checkbox" id="iInternalMessage"><span class="gslider round"></span></label><label style="margin-bottom: 30px;font-size:18px">Internal Message</label> <div class="send-notification-label" style="clear: both; display: block;margin-bottom:30px">Send e-mail to subscribers<label class="gswitch"><input type="checkbox" id="iEmailSubscribers"><span class="gslider round green"></span></label></div> <textarea placeholder="Message" id="iMessage"></textarea> </div><br><div style="padding: 20px;border: 1px solid #ababab;border-radius: 5px;background-color: #F5FDFE;" id="iExternal"><label class="gswitch"><input type="checkbox" id="iExternalMessage"><span class="gslider round"></span></label><label style="margin-bottom: 30px;font-size:18px">External Message <span style="font-size: 0.7em;vertical-align: middle;font-weight: 400;">| <span class="copyText" style="color:#2E64F8;">Copy from Internal Message</span></span></label> <div style="clear: both; display: none" id="showHome">Show in SAS homepage<label class="gswitch"><input type="checkbox" id="iExShowHomepage"><span class="gslider round green"></span></label></div> <div  style="clear: both; display: block; margin-bottom:30px">Send e-mail to subscribers<label class="gswitch"><input type="checkbox" id="iExEmailSubscribers"><span class="gslider round green"></span></label></div> <textarea placeholder="Message" id="iExMessage"></textarea> </div></div></div><div class="modal-footer"><button class="btn btn-primary" id="create-incident-btn">CREATE INCIDENT</button></div></div></div>';
             var newScheduledMaintenaceModal = '<div class="modal" id="new-scheduled-maintenance-modal"> <div class="modal-content"> <div class="modal-header"><button class="close close-modal">X</button><h1>New Scheduled Maintenance</h1><div class="select-template"><select class="select-picker select-template-dropdown" name="Select Template"><option value="none">Use Template</option></select></div></div><div class="modal-body"> <div class="modal-body-detail components-affected"> <label>Components Affected</label> <div class="component-container"> </div></div> <h1 style="font-size: 20px;font-weight: 400;">Messaging</h1><br><div class="modal-body-detail maintenance-name"> <label>Title</label><input id="maintenance-name" name="" placeholder="Maintenance Title" type="text" required> </div><div class="modal-body-detail maintenance-details"> <div style="padding: 20px;border: 1px solid #ababab;border-radius: 5px;background-color: #fffdf6;" id="mInternal"><label class="gswitch"><input type="checkbox" id="mInternalMessage"><span class="gslider round"></span></label><label style="margin-bottom: 30px;font-size:18px">Internal Message</label> <div class="maintenance-container" style="clear: both; display: block;margin-bottom:30px">Send e-mail to subscribers<label class="gswitch"><input type="checkbox" id="mEmailSubscribers"><span class="gslider round green"></span></label></div> <textarea placeholder="Message" id="mMessage"></textarea> </div><br><div style="padding: 20px;border: 1px solid #ababab;border-radius: 5px;background-color: #F5FDFE;" id="mExternal"><label class="gswitch"><input type="checkbox" id="mExternalMessage"><span class="gslider round"></span></label><label style="margin-bottom: 30px;font-size:18px">External Message <span style="font-size: 0.7em;vertical-align: middle;font-weight: 400;">| <span class="copyText" style="color:#2E64F8;">Copy from Internal Message</span></span></label> <div style="clear: both; display: none" id="showHome">Show in SAS homepage<label class="gswitch"><input type="checkbox" id="mExShowHomepage"><span class="gslider round green"></span></label></div> <div  style="clear: both; display: block; margin-bottom:30px">Send e-mail to subscribers<label class="gswitch"><input type="checkbox" id="mExEmailSubscribers"><span class="gslider round green"></span></label></div> <textarea placeholder="Message" id="mExMessage"></textarea> </div> </div><div class="maintenance-start"> <label>Maintenance Start Time</label> <div class="maintenance-time"> <input name="" type="date" required> <select class="time-select"></select> </div><span class="info">All times must be specified in EST - Eastern Standard Time(US & Canada)</span> </div><div class="maintenance-end"> <label>Maintenance End Time</label> <div class="maintenance-time"> <input name="" type="date" required> <select class="time-select"></select> </div><span class="info">All times must be specified in EST - Eastern Standard Time(US & Canada)</span> </div></div><div class="modal-footer"><button class="btn btn-primary" id="create-new-scheduled-maintenance">CREATE MAINTENANCE</button></div></div></div>';
@@ -280,61 +426,66 @@ $(document).ready(function() {
             $('main.messageBoard').append('<div class="incident-container"> <div class="incident-navigation"> <div class="incident-nav-header"> <div class="incident-header-title">Incidents</div><a class="create-incident-modal-btn incident-subscribe-button incident-save-button">+ NEW INCIDENT</a><a class="create-maintenance-modal-btn incident-subscribe-button incident-save-button">+ NEW MAINTENANCE</a><a id="new-incident-template" class="incident-subscribe-button incident-save-button">+ INCIDENT TEMPLATE</a><a id="new-maintenance-template" class="incident-subscribe-button incident-save-button">+ Maintenance TEMPLATE</a><input class="incident-nav-search" type="search" placeholder="Search"> </div> <div class="incident-nav-cont"> </div>  </div></div>' + '<div class="platform-container"> <div class="incident-navigation"><div class="incident-nav-header"> <div class="incident-header-title">Platforms </div> </div> <div class="incident-nav-board"> <a id="create-platform-btn" class="incident-subscribe-button incident-save-button">+ NEW PLATFORM </a></div><div class="incident-list-item" style="border-bottom:2px solid #E0E0E0;width:100%;margin-top: -40px;"><div class="incident-item-body"><h5></h5></div> <div class="incident-item-action" style="flex:3"><h5 style="width:220px"></h5><h5 style="width:220px"></h5><h5 style="flex:1;text-align:center">Show Status</h5><h5 style="flex:1;text-align:center">Show Section</h5><h5 style="flex:1;"></h5></div></div></div> <div class="platform-list-cont"></div></div>' + '<div class="subs-container"> <div class="subs-navigation"> <div class="subs-nav-header"> <div class="subs-header-title">Subscribers </div> <input class="subs-nav-search" type="search" placeholder="Search"> </div> <div class="subs-nav-cont"> </div> <div class="subs-nav-board"> <input type="email" placeholder="User email" spellcheck="false" id="subs-add-email"> <a id="subs-item-add" class="incident-subscribe-button incident-save-button">Add Subscriber </a></div> </div></div>' + '<div class="incident-view-page"></div>');
             $('body').append(newScheduledMaintenaceModal);
             $('body').append(createIncidentModal);
-            $('body').append('<div class="modal" id="new-incident-template-modal"> <div class="modal-content"> <div class="modal-header"><button class="close close-modal">X</button><h1>Incident Template</h1><div class="select-template"><select class="select-picker update-template-dropdown" name="Select Template"><option class="template" value="none">Update Template</option> </select> </div></div> <div class="modal-body"> <div class="modal-body-detail template-name"><label>Template Name</label><br><input type="text" placeholder="Template Name"><span class="info">This is used internally so you can identify which template you are using.</span></div><div class="modal-body-detail incident-title"> <label>Incident Title </label> <br> <input type="text" placeholder="Incident Title"><span class="info">The title given to the incident or scheduled maintenance. This is only applied when creating an incident or scheduled maintenance.</span></div><div class="modal-body-detail incident-status"> <label>Incident Status</label><br><select> <option value="Investigating">Investigating</option> <option value="Identified">Identified</option> <option value="Monitoring">Monitoring</option> <option value="Resolved">Resolved</option> </select><span class="info">The status will be applied to the incident or scheduled maintenance.</span></div><div class="modal-body-detail incident-severity"><label>Incident Severity</label><br><select><option value="1">Operational</option><option value="3">Degraded Performance</option><option value="4">Minor Outage</option><option value="5">Major Outage</option></select><span class="info">The severity will be applied to the incident or scheduled maintenance.</span></div><div class="modal-body-detail incident-message"> <label>Message Body </label> <br> <textarea placeholder="Message" style="margin-top: 0px; margin-bottom: 0px; height: 80px;"> </textarea> </div> <div class="modal-body-detail components-affected"> <label>Alert Users Subscribed To: </label> <div class="component-container"></div> </div></div><div class="modal-footer"><button class="btn btn-primary delete-template-btn">DELETE TEMPLATE</button><button class="btn btn-primary" id="update-incident-template-btn">UPDATE TEMPLATE</button><button class="btn btn-primary" id="create-incident-template-btn">CREATE INCIDENT TEMPLATE</button></div> </div></div>');
-            $('body').append('<div class="modal" id="new-maintenance-template-modal"> <div class="modal-content"> <div class="modal-header"> <button class="close close-modal">X </button> <h1>Maintenance Template</h1><div class="select-template"><select class="select-picker update-template-dropdown" name="Select Template"> <option class="template" value="none">Update Template</option> </select> </div></div> <div class="modal-body"> <div class="modal-body-detail template-name"> <label>Template Name </label> <br> <input type="text" placeholder="Template Name"> <span class="info">This is used internally so you can identify which template you are using. </span> </div> <div class="modal-body-detail maintenance-title"> <label>Maintenance Title </label> <br> <input type="text" placeholder="Maintenance Title"> <span class="info">The title given to the incident or scheduled maintenance. This is only applied when creating an incident or scheduled maintenance. </span> </div> <div class="modal-body-detail maintenance-message"> <label>Message Body </label> <br> <textarea placeholder="Message" style="margin-top: 0px; margin-bottom: 0px; height: 80px;"> </textarea> </div> <div class="modal-body-detail components-affected"> <label>Alert Users Subscribed To: </label> <div class="component-container"> </div> </div> </div> <div class="modal-footer"><button class="btn btn-primary delete-template-btn">DELETE TEMPLATE</button><button class="btn btn-primary" id="update-maintenance-template-btn">UPDATE TEMPLATE</button><button class="btn btn-primary" id="create-maintenance-template-btn">CREATE MAINTENANCE TEMPLATE </button> </div> </div></div>');
+            $('body').append('<div class="modal" id="new-incident-template-modal"> <div class="modal-content"> <div class="modal-header"><button class="close close-modal">X</button><h1>Incident Template</h1><div class="select-template"><select class="select-picker update-template-dropdown" name="Select Template"><option class="template" value="none">Update Template</option> </select> </div></div> <div class="modal-body"> <div class="modal-body-detail template-name"><label>Template Name</label><br><input type="text" placeholder="Template Name"><span class="info">This is used internally so you can identify which template you are using.</span></div><div class="modal-body-detail incident-title"> <label>Incident Title </label> <br> <input type="text" placeholder="Incident Title"><span class="info">The title given to the incident or scheduled maintenance. This is only applied when creating an incident or scheduled maintenance.</span></div><div class="modal-body-detail incident-status"> <label>Incident Status</label><br><select> <option value="Investigating">Investigating</option> <option value="Identified">Identified</option> <option value="Monitoring">Monitoring</option> <option value="Resolved">Resolved</option> </select><span class="info">The status will be applied to the incident or scheduled maintenance.</span></div><div class="modal-body-detail incident-severity"><label>Incident Severity</label><br><select><option value="1">Operational</option><option value="3">Degraded Performance</option><option value="4">Minor Outage</option><option value="5">Major Outage</option></select><span class="info">The severity will be applied to the incident or scheduled maintenance.</span></div><div class="modal-body-detail-internal incident-message"> <label>Internal Message </label> <br> <textarea placeholder="Message" style="margin-top: 0px; margin-bottom: 0px; height: 80px;"> </textarea> </div> <div class="modal-body-detail-external components-affected"> <label>External Message</label> <br> <textarea placeholder="Message" style="margin-top: 0px; margin-bottom: 0px; height: 80px;"> </textarea> </div> <div class="modal-body-detail components-affected"> <label>Alert Users Subscribed To: </label> <div class="component-container"></div> </div></div><div class="modal-footer"><button class="btn btn-primary delete-template-btn">DELETE TEMPLATE</button><button class="btn btn-primary" id="update-incident-template-btn">UPDATE TEMPLATE</button><button class="btn btn-primary" id="create-incident-template-btn">CREATE INCIDENT TEMPLATE</button></div> </div></div>');
+            $('body').append('<div class="modal" id="new-maintenance-template-modal"> <div class="modal-content"> <div class="modal-header"> <button class="close close-modal">X </button> <h1>Maintenance Template</h1><div class="select-template"><select class="select-picker update-template-dropdown" name="Select Template"> <option class="template" value="none">Update Template</option> </select> </div></div> <div class="modal-body"> <div class="modal-body-detail template-name"> <label>Template Name </label> <br> <input type="text" placeholder="Template Name"> <span class="info">This is used internally so you can identify which template you are using. </span> </div> <div class="modal-body-detail maintenance-title"> <label>Maintenance Title </label> <br> <input type="text" placeholder="Maintenance Title"> <span class="info">The title given to the incident or scheduled maintenance. This is only applied when creating an incident or scheduled maintenance. </span> </div> <div class="modal-body-detail maintenance-body"> <label>Message Body </label> <br> <textarea placeholder="Message" style="margin-top: 0px; margin-bottom: 0px; height: 80px;"> </textarea> </div> <div class="modal-body-detail components-affected"> <label>Alert Users Subscribed To: </label> <div class="component-container"> </div> </div> </div> <div class="modal-footer"><button class="btn btn-primary delete-template-btn">DELETE TEMPLATE</button><button class="btn btn-primary" id="update-maintenance-template-btn">UPDATE TEMPLATE</button><button class="btn btn-primary" id="create-maintenance-template-btn">CREATE MAINTENANCE TEMPLATE </button> </div> </div></div>');
             //append loading animation
-            $('.message-board-container').append('<div class="hide" id="loader-container"><div class="sk-folding-cube"><div class="sk-cube1 sk-cube"></div><div class="sk-cube2 sk-cube"></div><div class="sk-cube4 sk-cube"></div><div class="sk-cube3 sk-cube"></div></div><div class="warningMessage"><div class="warning-sign-container"><a><i class="fas fa-exclamation-circle"></i></a></div><div class="warning-message-container"><span>Making API Requests</span><br><span>Please do not press back button or close window.</span></div></div></div>')
-            $('textarea').ckeditor();
-
-            function checkUserSegments(callback){
-                if(userSegments.length){
+            $('.message-board-container').append('<div class="hide" id="loader-container"><div class="sk-folding-cube"><div class="sk-cube1 sk-cube"></div><div class="sk-cube2 sk-cube"></div><div class="sk-cube4 sk-cube"></div><div class="sk-cube3 sk-cube"></div></div><div class="warningMessage"><div class="warning-sign-container"><a><i class="fa fa-exclamation-circle"></i></a></div><div class="warning-message-container"><span>Making API Requests</span><br><span>Please do not press back button or close window.</span></div></div></div>')
+            $('body').append('<div class="modal" id="new-incident-modal"> <div class="modal-content"> <div class="modal-header"> <button class="close close-modal">X</button> <h1>Related Incident</h1> <div class="select-template"> <select class="select-picker select-template-dropdown" name="Select Template"> <option class="template" value="none">Use Template</option> </select> </div></div><div class="modal-body"> <div class="modal-body-detail components-affected"> <label>Components Affected</label> <div class="component-container"> </div></div><h1 style="font-size: 20px;font-weight: 400;">Messaging</h1> <br><div class="modal-body-detail incident-name"> <label>Title</label> <br><input type="text" id="incident-name" name="" placeholder="Incident Title"><span class="info"></span> </div><div class="modal-body-detail incident-severity"> <label>Severity</label><br><select> <option value="1">Operational</option> <option value="3">Degraded Performance</option> <option value="4">Minor Outage</option> <option value="5">Major Outage</option> </select> </div><div class="modal-body-detail incident-status"> <label>Status</label> <div class="status-choices"> <input type="radio" name="iInvestigating" value="Investigating"><span class="radio-label">Investigating</span> <input type="radio" name="iIdentified" value="Identified"><span class="radio-label">Identified</span> <input type="radio" name="iMonitoring" value="Monitoring"><span class="radio-label">Monitoring</span> <input type="radio" name="iResolved" value="Resolved"><span class="radio-label">Resolved</span> </div></div><div class="modal-body-detail incident-message"> <div style="padding: 20px;border: 1px solid #ababab;border-radius: 5px;background-color: #F5FDFE;" id="iExternal"><label style="margin-bottom: 30px;font-size:18px">External Message</label> <div id="showHome">Show in SAS homepage<label class="gswitch"><input type="checkbox" id="iExShowHomepage" checked><span class="gslider round green"></span></label></div><div style="margin-bottom:30px">Send e-mail to subscribers<label class="gswitch"><input type="checkbox" id="iExEmailSubscribers" checked><span class="gslider round green"></span></label></div><textarea placeholder="Message" id="new-external-message" style="display:none;"></textarea> </div></div></div><div class="modal-footer"><button class="btn btn-primary" id="create-new-incident-btn">CREATE INCIDENT</button></div></div></div>')
+            $('textarea').not($('#new-incident-modal').find('textarea')).ckeditor();
+           
+            function checkUserSegments(callback) {
+                if (userSegments.length) {
                     callback();
-                }else{
-                    getUserSegments().done(function(data){
+                } else {
+                    getUserSegments().done(function(data) {
                         userSegments = data.user_segments;
                         callback();
                     })
-                } 
+                }
             }
             //End of APPENDS
             $('.create-maintenance-modal-btn').click(function() {
                 checkUserSegments(openNewMaintenanceModal);
-                function openNewMaintenanceModal(){
-                cleanModal();
-                $('html').css('overflow', 'hidden');
 
-                if(!$('#new-scheduled-maintenance-modal .segments-select').length){
-                    var segmentContainer = '<div class="segments-container"><label for="segments-select">Visible To</label>'+getUserSegmentsSelect()+' </div>'
-                    $(segmentContainer).insertBefore('#mInternal .maintenance-container')
-    
-                    $(segmentContainer).insertAfter('#mExternal #showHome')
+                function openNewMaintenanceModal() {
+                    cleanModal();
+                    $('html').css('overflow', 'hidden');
+                    if (!$('#new-scheduled-maintenance-modal .segments-select').length) {
+                        var segmentContainer = '<div class="segments-container"><label for="segments-select">Visible To</label>' + getUserSegmentsSelect() + ' </div>'
+                        $(segmentContainer).insertBefore('#mInternal .maintenance-container');
+                        $(segmentContainer).insertAfter('#mExternal #showHome');
                     }
-                $('#new-scheduled-maintenance-modal').fadeIn("fast");
-                setTimeout(function() {
-                    CKEDITOR.instances["mMessage"].plugins.lite.findPlugin(CKEDITOR.instances["mMessage"]).toggleTracking(false, false);
-                    CKEDITOR.instances["mExMessage"].plugins.lite.findPlugin(CKEDITOR.instances["mExMessage"]).toggleTracking(false, false);
-                }, 300);
-                $(".gswitch input").prop('checked', true);
-                $("#mExShowHomepage").prop("checked", false);
-                $("#mInternal > div").fadeIn();
-                $("#mExternal > div").fadeIn();
-                $("#mExternal > #showHome").hide();
+                    $('#new-scheduled-maintenance-modal').fadeIn("fast");
+                    $('#mInternal .segments-select').val(gSZMKAgentManagerSegmentID);
+                    $('#mExternal .segments-select').val(gSZMKSignedInSegmentID);
+                    setTimeout(function() {
+                        CKEDITOR.instances["mMessage"].plugins.lite.findPlugin(CKEDITOR.instances["mMessage"]).toggleTracking(false, false);
+                        CKEDITOR.instances["mExMessage"].plugins.lite.findPlugin(CKEDITOR.instances["mExMessage"]).toggleTracking(false, false);
+                    }, 300);
+                    $(".gswitch input").prop('checked', true);
+                    $("#mExShowHomepage").prop("checked", false);
+                    $("#mInternal > div").fadeIn();
+                    $("#mExternal > div").fadeIn();
+                    $("#mExternal > #showHome").hide();
                 }
             })
 
 
             $('.create-incident-modal-btn').click(function() {
                 checkUserSegments(openCreateIncidentModal);
-                function openCreateIncidentModal(){
+
+                function openCreateIncidentModal() {
                     cleanModal();
                     $('html').css('overflow', 'hidden');
 
-                    if(!$('#create-incident-modal .segments-select').length){
-                    var segmentContainer = '<div class="segments-container"><label for="segments-select">Visible To</label>'+getUserSegmentsSelect()+' </div>'
-                    $(segmentContainer).insertBefore('#iInternal .send-notification-label');
-                    $(segmentContainer).insertAfter('#create-incident-modal #showHome');
+                    if (!$('#create-incident-modal .segments-select').length) {
+                        var segmentContainer = '<div class="segments-container"><label for="segments-select">Visible To</label>' + getUserSegmentsSelect() + ' </div>'
+                        $(segmentContainer).insertBefore('#iInternal .send-notification-label');
+                        $(segmentContainer).insertAfter('#create-incident-modal #showHome');
                     }
                     $('#create-incident-modal').fadeIn("fast");
+                    $('#iInternal .segments-select').val(gSZMKAgentManagerSegmentID);
+                    $('#iExternal .segments-select').val(gSZMKSignedInSegmentID);
                     setTimeout(function() {
                         CKEDITOR.instances["iMessage"].plugins.lite.findPlugin(CKEDITOR.instances["iMessage"]).toggleTracking(false, false);
                         CKEDITOR.instances["iExMessage"].plugins.lite.findPlugin(CKEDITOR.instances["iExMessage"]).toggleTracking(false, false);
@@ -415,6 +566,7 @@ $(document).ready(function() {
 
             //================================================= DYNAMIC COMPONENTS ============
             var templates = [];
+
             function populateTemplate() {
                 $.get("/api/v2/help_center/en-us/articles.json?label_names=Type:Template", function(results) {
                     $(".select-template-dropdown").each(function() {
@@ -576,7 +728,6 @@ $(document).ready(function() {
                 $(this).attr("disabled", true);
                 var thismodal = $(this).closest('.modal');
                 var params = [];
-                var newIncidentIDs = [];
                 params['incidentName'] = thismodal.find('#incident-name').val();
                 params['incidentStatus'] = thismodal.find('.incident-status input[type="radio"]:checked').val();
                 params['incidentSeverity'] = thismodal.find('.incident-severity select').val();
@@ -600,6 +751,13 @@ $(document).ready(function() {
                             params['message'] = $("#iInternal textarea").val();
                             params['notifications'] = $("#iEmailSubscribers").prop('checked');
                             params.user_segment_id = parseInt($('#iInternal .segments-select').val());
+                            if (!$("#iExternal .gswitch input").prop('checked')) {
+                                var componentsAffected = "ComponentsAffected:";
+                                thismodal.find('.components-affected input[type="checkbox"]:checked').each(function() {
+                                    componentsAffected += $(this).val() + " ";
+                                })
+                                params.platformIDs = componentsAffected;
+                            }
                             createArticleObject(internalSectionID, params, 'incident');
                         }
                         if ($("#iExternal .gswitch input").prop('checked')) {
@@ -615,83 +773,11 @@ $(document).ready(function() {
                         }
                         $("#create-incident-modal").fadeOut("fast");
                         showLoadingAnimation();
-                        startRequest(postRequests, 0);
-
-                        function startRequest(requests, ndx) {
-                            console.log("\nRequest: ", requests[ndx]);
-                            var isCreateIncident = false;
-                            if (requests[ndx].action) {
-                                delete requests[ndx].action;
-                                isCreateIncident = true;
-                            }
-
-                            $.ajax(requests[ndx]).done(function(data) {
-                                if (isCreateIncident){
-                                    newIncidentIDs.push(data.article.id); 
-                                }
-                                console.log('Status: %c Success ', 'background:#222; color:#00ff00');
-                                if (requests[ndx].type.toLowerCase() !== "delete") console.log("Response: ", data);
-                                if (ndx < requests.length - 1) {
-                                    startRequest(requests, ndx + 1);
-                                } else {
-                                    addRelatedIncidents(newIncidentIDs, 0);
-                                }
-                            }).fail(function(data) {
-                                console.log('Status: %c Error ', 'background:#222; color:#ff0000');
-                                console.log("Response", data);
-                            })
-                        }
-
-                        var relatedIncidentRequests = [];
-
-                        function addRelatedIncidentsLabel(labelName, incidentID) {
-                            return {
-                                url: '/api/v2/help_center/articles/' + incidentID + '/labels.json',
-                                type: 'POST',
-                                data: {
-                                    "label": {
-                                        "name": labelName
-                                    }
-                                }
-                            }
-                        }
-
-                        function addRelatedIncidents(arrID, ndx) {
-                            if (ndx < arrID.length) {
-                                var relatedIncidents = arrID.filter(function(id) {
-                                    return id !== arrID[ndx];
-                                });
-                                if (relatedIncidents.length) {
-                                    relatedIncidentRequests.push(addRelatedIncidentsLabel("RelatedIncidents:" + relatedIncidents.join(' '), arrID[ndx]));
-                                    addRelatedIncidents(arrID, ndx + 1);
-                                } else {
-                                    closeModal(arrID[ndx]);
-                                }
-                            } else {
-                                initRelatedIncidents(relatedIncidentRequests, 0);
-                            }
-                        }
-
-                        function initRelatedIncidents(reqArray, ndx) {
-                            console.log("\nRequest: ", reqArray[ndx]);
-                            $.ajax(reqArray[ndx]).done(function(data) {
-                                console.log('Status: %c Success ', 'background:#222; color:#00ff00');
-                                if (reqArray[ndx].type.toLowerCase() !== "delete") console.log("Response: ", data);
-                                if (ndx < reqArray.length - 1) {
-                                    initRelatedIncidents(reqArray, ndx + 1)
-                                } else {
-                                    closeModal(newIncidentIDs[newIncidentIDs.length - 1]);
-                                }
-                            }).fail(function(data) {
-                                console.log('Status: %c Error ', 'background:#222; color:#ff0000');
-                                console.log("Response", data);
-                            })
-                        }
+                        startRequest(postRequests, 0, closeModal);
 
                         function closeModal(incidentID) {
                             $('.btn').removeAttr("disabled");
                             view_incident(incidentID);
-                            postRequests = [];
                         }
                     }
                 }
@@ -708,6 +794,50 @@ $(document).ready(function() {
                 }
             }
 
+            //when user click Create Incident button from new-incident-modal
+            $('#create-new-incident-btn').on('click', function() {
+                console.log('%c Creating External Incident ', 'background:#006dcc; color:#ffffff;font-size:15px;');
+                $(this).attr('disabled', 'disabled');
+                var $newIncidentModal = $('#new-incident-modal');
+                var $components = $newIncidentModal.find('.component-container').find('input:checked');
+                var params = [];
+                var platforms = '';
+                var internalIncidentTitle = '';
+                var internalStatus = currentInternalIncidentTitle.substr(0, currentInternalIncidentTitle.indexOf(']') + 1);
+                params.incidentName = $newIncidentModal.find('#incident-name').val();
+                params.incidentStatus = $newIncidentModal.find('.incident-status input[type="radio"]:checked').val();
+                params.incidentSeverity = $newIncidentModal.find('.incident-severity select').val();
+
+                $newIncidentModal.find('.components-affected input[type="checkbox"]:checked').siblings("span").each(function() {
+                    platforms += "[" + $(this).text().trim() + "]";
+                })
+                internalIncidentTitle = internalStatus + " " + platforms + " " + params.incidentName;
+
+                if (internalIncidentTitle != currentInternalIncidentTitle) {
+                    postRequests.push(updateArticleTitle(currentInternalIncidentID, internalIncidentTitle))
+                }
+
+                if (params.incidentName == "" || params.incidentStatus == undefined || !$components.length) {
+                    $(this).removeAttr('disabled');
+                    alert("Please fill up all the fields.");
+                } else {
+                    params.user_segment_id = parseInt($('#iExternal .segments-select').val());
+                    params.message = $newIncidentModal.find("#new-external-message").val();
+                    params.notifications = $newIncidentModal.find("#iExEmailSubscribers").prop('checked');
+                    params.sas_visibility = $("#iExShowHomepage").prop("checked");
+                    $.each($components, function(index, component) {
+                        createArticleObject(component.value, params, "incident");
+                    })
+                    startRequest(postRequests, 0, endRequest);
+                }
+
+                function endRequest(incidentID) {
+                    updateModal(currentInternalIncidentID);
+                    $('#new-incident-modal').hide();
+                }
+            })
+
+
             function createArticleObject(sect_id, params, type) {
                 var obj = {},
                     article = {};
@@ -720,7 +850,7 @@ $(document).ready(function() {
                     var maintenanceStart = "Maintenance Start: " + params.startTime.date + " " + params.startTime.time + " ";
                     var maintenanceEnd = "Maintenance End: " + params.endTime.date + " " + params.endTime.time + " ";
                     article.title = params.maintenanceName + " " + params.startTime.date;
-                    article.body = params.incidentStatus + ":<br><br><strong>" + maintenanceStart + "</strong><br><strong>" + maintenanceEnd + "</strong><br><br>" + params.maintenanceDetails;
+                    article.body = "New:<br><br><strong>" + maintenanceStart + "</strong><br><strong>" + maintenanceEnd + "</strong><br><br>" + params.maintenanceDetails;
                     obj.article = article;
                     obj.article.label_names = generateMaintenanceLabels(params, sect_id);
                 }
@@ -735,14 +865,18 @@ $(document).ready(function() {
                 var incidentlabels = ["Type:Incident", "Status:" + params.incidentStatus, "Name:" + params.incidentName, "Severity:" + params.incidentSeverity];
                 if (params.sas_visibility == false && sect_id == sas) {
                     incidentlabels.push("Hidden");
-                } else if (params.sas_visibility == true && sect_id == sas) {
+                }
+                if (params.sas_visibility == true && sect_id == sas) {
                     incidentlabels.push("ShowInHomepage");
+                }
+                if (params.platformIDs) {
+                    incidentlabels.push(params.platformIDs);
                 }
                 return incidentlabels;
             }
 
             function generateMaintenanceLabels(params, sect_id) {
-                var maintenancelabels = ["Type:Maintenance", "Status:" + "New", "Name:" + params.maintenanceName]
+                var maintenancelabels = ["Type:Maintenance", "Status:New", "Name:" + params.maintenanceName]
                 if (params.sas_visibility == false && sect_id == sas) {
                     maintenancelabels.push("Hidden");
                 } else if (params.sas_visibility == true && sect_id == sas) {
@@ -784,9 +918,7 @@ $(document).ready(function() {
                             params.maintenanceDetails = $("#mInternal textarea").val();
                             params['notifications'] = $("#mEmailSubscribers").prop('checked');
                             params.user_segment_id = parseInt($('#mInternal .segments-select').val())
-                            console.log($('#mInternal .segments-select').val());
                             createArticleObject(messageBoardInternal, params, 'maintenance');
-
                         }
                         if ($("#mExternal .gswitch input").prop('checked')) {
                             //submit external message to selected component section
@@ -795,7 +927,6 @@ $(document).ready(function() {
                             params['notifications'] = $("#mExEmailSubscribers").prop('checked');
                             params['sas_visibility'] = $("#mExShowHomepage").prop("checked");
                             params.user_segment_id = parseInt($('#mExternal .segments-select').val());
-                            console.log($('#mExternal .segments-select').val());
                             thismodal.find('.components-affected input[type="checkbox"]:checked').each(function() {
                                 createArticleObject($(this).val(), params, 'maintenance');
                             })
@@ -807,21 +938,18 @@ $(document).ready(function() {
 
                         function initPostMaintenanceRequest(reqArray, ndx) {
                             console.log("\nRequest: ", reqArray[ndx]);
-                            if (ndx < reqArray.length - 1) {
+                            $.ajax(reqArray[ndx]).done(function(data) {
+                                console.log('Status: %c Success ', 'background:#222; color:#00ff00');
+                                if (reqArray[ndx].type.toLowerCase() !== "delete") console.log("Response: ", data);
+                                if (ndx < reqArray.length - 1) {
                                     initPostMaintenanceRequest(reqArray, ndx + 1);
+                                } else {
+                                    viewLatest(data.article);
                                 }
-                            // $.ajax(reqArray[ndx]).done(function(data) {
-                            //     console.log('Status: %c Success ', 'background:#222; color:#00ff00');
-                            //     if (reqArray[ndx].type.toLowerCase() !== "delete") console.log("Response: ", data);
-                            //     if (ndx < reqArray.length - 1) {
-                            //         initPostMaintenanceRequest(reqArray, ndx + 1);
-                            //     } else {
-                            //         viewLatest(data.article);
-                            //     }
-                            // }).fail(function(data) {
-                            //     console.log('Status: %c Error ', 'background:#222; color:#ff0000');
-                            //     console.log("Response", data);
-                            // })
+                            }).fail(function(data) {
+                                console.log('Status: %c Error ', 'background:#222; color:#ff0000');
+                                console.log("Response", data);
+                            })
                         }
 
                         function viewLatest(article) {
@@ -906,94 +1034,84 @@ $(document).ready(function() {
 
             function toggelInternalMessage() {
                 if ($('#internal-message-switch').is(':checked')) {
-
                     $("#update-internal-message #send-comment-notif,#update-internal-message  .subscribe-global-notif").prop('checked', true);
                     $("#update-internal-message > div").fadeIn();
                 } else {
-                    /*$('#switch-internal').hide()
-
-                    $('#update-internal-message').append('<button class="addinternal"><span class="btn-stage">Add New Internal Message</span> </button>')*/
-
-
                     $("#update-internal-message #send-comment-notif,#update-internal-message  .subscribe-global-notif").prop('checked', false);
                     $("#update-internal-message > div").fadeOut();
                 }
 
+                // $('#update-internal-message').append('<button class="internalClosebtn"><span> Close</span></button>')
+                // $('.internalClosebtn').hide()
+                // $('.addinternal').on("click", function() {
+                //     $('.internalClosebtn').show()
+                //     var internalMessage = document.getElementById("internal-message-switch");
+                //     internalMessage.disabled = false
+                //     internalMessage.checked = true
 
-                $('#update-internal-message').append('<button class="internalClosebtn"><span> Close</span></button>')
-                $('.internalClosebtn').hide()
-                $('.addinternal').on("click", function() {
-                    $('.internalClosebtn').show()
-                    var internalMessage = document.getElementById("internal-message-switch");
-                    internalMessage.disabled = false
-                    internalMessage.checked = true
+                //     $("#update-internal-message #send-comment-notif,#update-internal-message  .subscribe-global-notif").prop('checked', true);
 
-                    $("#update-internal-message #send-comment-notif,#update-internal-message  .subscribe-global-notif").prop('checked', true);
-
-                    $("#update-internal-message > div").fadeIn();
-                    $(".addinternal").hide()
-                    $('#switch-internal').show()
-                })
-                $('.internalClosebtn').on("click", function() {
-                    $("#update-internal-message > div").fadeOut();
-                    $('#switch-internal').hide()
-                    $('.internalClosebtn').remove()
-                    $('.addinternal').show()
-                    $("#update-internal-message #send-comment-notif,#update-internal-message.subscribe-global-notif").prop('checked', false);
-                    $('.internalClosebtn').hide();
-                })
+                //     $("#update-internal-message > div").fadeIn();
+                //     $(".addinternal").hide()
+                //     $('#switch-internal').show()
+                // })
+                // $('.internalClosebtn').on("click", function() {
+                //     $("#update-internal-message > div").fadeOut();
+                //     $('#switch-internal').hide()
+                //     $('.internalClosebtn').remove()
+                //     $('.addinternal').show()
+                //     $("#update-internal-message #send-comment-notif,#update-internal-message.subscribe-global-notif").prop('checked', false);
+                //     $('.internalClosebtn').hide();
+                // })
 
             }
 
             function toggleExternalMessage() {
                 if ($("#external-message-switch").is(':checked')) {
-
                     $("#update-external-message #send-comment-notif,#update-external-message  .subscribe-global-notif").prop('checked', true);
                     $("#update-external-message > div").fadeIn();
                 } else {
-                    /*$('#switch-external').hide()
-                    $('#update-external-message').prepend('<button class="addexternal"><span class="btn-stage">Add New External Message</span> </button>')*/
                     $("#update-external-message #send-comment-notif,#update-external-message  .subscribe-global-notif").prop('checked', false);
-
                     $("#update-external-message > div").fadeOut();
                 }
-                $('.message-external').prepend('<button class="externalClosebtn"><span> Close</span></button>')
-                $('.externalClosebtn').hide()
-                $('.addexternal').on("click", function() {
-                    $('.externalClosebtn').show()
-                    $("#update-external-message > div").fadeIn();
-                    var externalMessage = document.getElementById("external-message-switch");
-                    externalMessage.disabled = false
-                    externalMessage.checked = true
-                    var component = '<div class="component-container">';
-                    for (var i = 0, len = allPlatforms.length; i < len; i++) {
-                        if (allPlatforms[i].id !== messageBoardInternal) {
-                            var platform_name = allPlatforms[i].description.split("@", 1).toString();
-                            component += '<br/><div ="component"><input class="affected-component" align="left" type="checkbox" value= ' + allPlatforms[i].id + '> <span>' + platform_name + '</span></div>';
-                        }
-                    }
-                    component += '</div>'
-                    $('#update-external-message').prepend(component);
-                    $('#update-external-message').prepend('<div class="modal-body2"> <div class="modal-body-detail components-affected"> <label>Components Affected</label> <div class="component-container"> </div></div>')
-                    $('.modal-body2').prepend('<h1 style="font-size: 20px;font-weight: 400;">Messaging</h1><br><div class="modal-body-detail incident-name"> <label>Title</label> <br><input type="text" id="incident-name-external" name="" placeholder="Incident Title"><span class="info"></span> </div>')
-                    $("#update-external-message #send-comment-notif,#update-external-message.subscribe-global-notif").prop('checked', true);
 
-                    $(".addexternal").hide()
-                    $('#switch-external').show()
+                // $('.message-external').prepend('<button class="externalClosebtn"><span> Close</span></button>')
+                // $('.externalClosebtn').hide()
+                // $('.addexternal').on("click", function() {
+                //     $('.externalClosebtn').show()
+                //     $("#update-external-message > div").fadeIn();
+                //     var externalMessage = document.getElementById("external-message-switch");
+                //     externalMessage.disabled = false
+                //     externalMessage.checked = true
+                //     var component = '<div class="component-container">';
+                //     for (var i = 0, len = allPlatforms.length; i < len; i++) {
+                //         if (allPlatforms[i].id !== messageBoardInternal) {
+                //             var platform_name = allPlatforms[i].description.split("@", 1).toString();
+                //             component += '<br/><div ="component"><input class="affected-component" align="left" type="checkbox" value= ' + allPlatforms[i].id + '> <span>' + platform_name + '</span></div>';
+                //         }
+                //     }
+                //     component += '</div>'
+                //     $('#update-external-message').prepend(component);
+                //     $('#update-external-message').prepend('<div class="modal-body2"> <div class="modal-body-detail components-affected"> <label>Components Affected</label> <div class="component-container"> </div></div>')
+                //     $('.modal-body2').prepend('<h1 style="font-size: 20px;font-weight: 400;">Messaging</h1><br><div class="modal-body-detail incident-name"> <label>Title</label> <br><input type="text" id="incident-name-external" name="" placeholder="Incident Title"><span class="info"></span> </div>')
+                //     $("#update-external-message #send-comment-notif,#update-external-message.subscribe-global-notif").prop('checked', true);
 
-                })
-                $('.externalClosebtn').on("click", function() {
-                    $("#update-external-message > div").fadeOut();
-                    $('#switch-external').hide()
-                    $('.externalClosebtn').remove()
-                    $(".addexternal").show()
-                    $("#update-external-message #send-comment-notif,#update-external-message.subscribe-global-notif").prop('checked', false);
-                    $('.externalClosebtn').hide()
-                    $('.affected-component').remove()
-                    $('.component-container').remove()
-                    $('.modal-body2').remove()
+                //     $(".addexternal").hide()
+                //     $('#switch-external').show()
 
-                })
+                // })
+                // $('.externalClosebtn').on("click", function() {
+                //     $("#update-external-message > div").fadeOut();
+                //     $('#switch-external').hide()
+                //     $('.externalClosebtn').remove()
+                //     $(".addexternal").show()
+                //     $("#update-external-message #send-comment-notif,#update-external-message.subscribe-global-notif").prop('checked', false);
+                //     $('.externalClosebtn').hide()
+                //     $('.affected-component').remove()
+                //     $('.component-container').remove()
+                //     $('.modal-body2').remove()
+
+                // })
             }
 
             $('#goto-messageBoard-admin').on("click", function() {
@@ -1026,23 +1144,28 @@ $(document).ready(function() {
                     dataType: 'json'
                 }).done(function(data) {
                     var labels = data.article.label_names;
-
                     if (labels.toString().includes("RelatedIncidents:")) {
                         message2 += "\n\n" + message;
                         message = message2;
                     }
+                    var request = {
+                        url: '/api/v2/help_center/articles/' + incident + '.json',
+                        type: 'DELETE'
+                    };
                     if (confirm(message)) {
                         console.log('%c Delete Incident ', 'background:#ef4a5b; color:#ffffff;font-size:15px;');
-                        $.ajax({
-                            url: '/api/v2/help_center/articles/' + incident + '.json',
-                            type: 'DELETE'
-                        });
+                        console.log("\nRequest: ", request);
+                        $.ajax(request).done(function() {
+                            console.log('Status: %c Success ', 'background:#222; color:#00ff00');
+                        }).fail(function(data) {
+                            console.log('Status: %c Error ', 'background:#222; color:#ff0000');
+                            console.log("Response", data);
+                        })
                         $currentArticle.closest(".incident-list-item").remove();
                         refresh = true;
                     }
                 })
             });
-
 
             $('.incident-container').on("click", ".incident-item-archive", function(event) {
                 var incident = $(this).closest("div").find("span.hide").text();
@@ -1160,152 +1283,249 @@ $(document).ready(function() {
             $('.incident-view-page, .incident-container').on("click", "#update-incident-btn", function(event) {
                 $(this).attr('disabled', 'disabled');
                 var incidentID = $(this).children('.hide').text(),
-                    platform = $(this).children('#platform_id').text(),
+                    platform = $(this).children('#platform_id').text();
+
+                updateModal = function(article_id) {
                     htmlElementIncident = "",
-                    relatedIncidentCheckbox = "",
-                    relatedIncidentList = [],
-                    hasRelatedIncidents = true;
-                $.get('/api/v2/help_center/en-us/articles/' + incidentID).done(function(data) {
-                    currentSec = data.article.section_id;
-                    label = data.article.label_names,
-                        labelLength = label.length,
-                        title = data.article.title;
-                    if (data.article.section_id === messageBoardInternal) {
-                        currentInternalIncidentID = incidentID;
-                        currentInternalIncidentTitle = title;
-                    }
-                    for (var x = 0; x < labelLength; x++) {
-                        if (label[x].includes("RelatedIncidents:")) {
-                            var relatedIncidentsTag = label[x].replace(/RelatedIncidents:/g, "");
-                            var related_incidents = relatedIncidentsTag.split(" ");
+                        relatedIncidentCheckbox = "",
+                        relatedIncidentList = [],
+                        hasRelatedIncidents = true,
+                        externaluserSegmentID = 0,
+                        internalUserSegmentID = 0,
+                        currInternalIncident = {},
+                        affectedComponents = '',
+                        hasRelatedInternal = false,
+                        currentArticle = {};
+                    $.get('/api/v2/help_center/en-us/articles/' + article_id).done(function(data) {
+                        currentSec = data.article.section_id;
+                        currentArticle = data.article;
+                        label = data.article.label_names,
+                            labelLength = label.length,
+                            title = data.article.title;
+                        platform = data.article.section_id;
+                        if (data.article.section_id === messageBoardInternal) {
+                            currentInternalIncidentID = article_id;
+                            currentInternalIncidentTitle = title;
+                            internalUserSegmentID = data.article.user_segment_id;
+                            currInternalIncident = data.article;
+                        } else {
+                            externaluserSegmentID = data.article.user_segment_id;
                         }
-                    }
-                    if (related_incidents) {
-                        related_incidents = related_incidents.filter(function(data) {
-                            return data !== "";
-                        })
-                        htmlElementIncident += '<div id="related-incidents-container"><label id="related-incidents-label">Related Incidents:</label>';
-                        relatedIncidentCheckbox += '<div id="relatedIncidentAffected"><label>Related Incidents Affected</label><div class="component-container">';
-                        for (var index = 0; index < related_incidents.length; index++) {
-                            (function(x) {
-                                $.get('/api/v2/help_center/articles/' + related_incidents[x] + '.json').done(function(data) {
+                        for (var x = 0; x < labelLength; x++) {
+                            if (label[x].includes("RelatedIncidents:")) {
+                                var relatedIncidentsTag = label[x].replace(/RelatedIncidents:/g, "");
+                                var related_incidents = relatedIncidentsTag.split(" ");
+                            }
+                            if (label[x].includes("ComponentsAffected:")) {
+                                affectedComponents = label[x];
+                            }
+                        }
+                        if (related_incidents) {
+                            related_incidents = related_incidents.filter(function(data) {
+                                return data !== "";
+                            })
+                            htmlElementIncident += '<div id="related-incidents-container"><label id="related-incidents-label">Related Incidents:</label>';
+                            relatedIncidentCheckbox += '<div id="relatedIncidentAffected"><label>Related Incidents Affected</label><div class="component-container">';
+
+                            getRelatedIncidents(related_incidents, 0, openModal);
+
+                            function getRelatedIncidents(incident_ids, ndx, callbackFn) {
+                                $.get('/api/v2/help_center/articles/' + incident_ids[ndx]).done(function(data) {
                                     relatedIncidentList.push(data.article);
-                                    if (x + 1 === related_incidents.length) {
-                                        (function() {
-                                            if (relatedIncidentList.length === related_incidents.length) {
-                                                instantiateDOM();
-                                            } else {
-                                                setTimeout(arguments.callee, 100);
-                                            }
-                                        })()
-                                    }
-                                }).fail(function(data) {
-                                    if (x + 1 === related_incidents.length) {
-                                        if (!relatedIncidentList.length) {
-                                            htmlElementIncident = "";
-                                            relatedIncidentCheckbox = "";
-                                            hasRelatedIncidents = false;
-                                        }
+                                    if (ndx < incident_ids.length - 1) {
+                                        getRelatedIncidents(incident_ids, ndx + 1, callbackFn);
+                                    } else {
                                         instantiateDOM();
                                     }
-                                });
-                            })(index);
+                                }).fail(function() {
+                                    if (ndx < incident_ids.length - 1) {
+                                        getRelatedIncidents(incident_ids, ndx + 1, callbackFn);
+                                    } else {
+                                        instantiateDOM();
+                                    }
+                                })
+                            }
+                        } else {
+                            hasRelatedIncidents = false;
+                            openModal(title);
                         }
-                    } else {
-                        hasRelatedIncidents = false;
-                        openModal(title);
-                    }
 
-                    function instantiateDOM() {
-                        relatedIncidentList.forEach(function(data) {
-                            var j = data.section_id;
-                            section = j === messageBoardMDX ? "MDX 2.0" : j === messageBoardSAS ? "Sizmek Advertising Suite" : j === messageBoardDSP ? "DSP" : j === messageBoardDMP ? "DMP" : j === messageBoardSiteOP ? "Site Optimization" : j === messageBoardInternal ? "Internal" : "";
-                            htmlElementIncident += '<div class="incident-item-action" id="related-incident"><a class="incident-item-view" href="/hc/en-us/articles/' + data.id + '" id="related-incident-span">' + section + '</a><span>' + data.id + '</span></div>';
-                            section != "Internal" ? relatedIncidentCheckbox += '<div class="component"><input type="checkbox" value="' + data.id + '" checked><span>' + section + '</span><span class="platform-id" id="' + j + '"></span><span id="incident-title" style="display:none;">' + data.title + '</span></div>' : currentInternalIncidentID = data.id, currentInternalIncidentTitle = data.title;
-                            if (relatedIncidentList.length === 1 && section == "Internal") {
-                                relatedIncidentCheckbox = "";
+                        function instantiateDOM() {
+                            relatedIncidentList.forEach(function(data) {
+                                var section_id = data.section_id;
+                                var id = data.id;
+                                var section = "";
+                                if (section_id === messageBoardMDX) {
+                                    section = "MDX 2.0";
+                                } else if (section_id === messageBoardSAS) {
+                                    section = "Sizmek Advertising Suite";
+                                } else if (section_id === messageBoardDSP) {
+                                    section = "DSP";
+                                } else if (section_id === messageBoardDMP) {
+                                    section = "DMP";
+                                } else if (section_id === messageBoardSiteOP) {
+                                    section = "Site Optimization";
+                                } else if (section_id === messageBoardInternal) {
+                                    section = "Internal";
+                                }
+
+                                htmlElementIncident += '<div class="incident-item-action" id="related-incident"><a class="incident-item-view" href="/hc/en-us/articles/' + id + '" id="related-incident-span">' + section + '</a><span>' + id + '</span></div>';
+
+                                if (section == "Internal") {
+                                    currentInternalIncidentID = id, currentInternalIncidentTitle = data.title;
+                                    internalUserSegmentID = data.user_segment_id;
+                                    hasRelatedInternal = true;
+                                } else {
+                                    externaluserSegmentID = data.user_segment_id;
+                                    relatedIncidentCheckbox += '<div class="component"><input type="checkbox" value="' + id + '" checked><span>' + section + '</span><span class="platform-id" id="' + section_id + '"></span><span id="incident-title" style="display:none;">' + data.title + '</span></div>'
+                                }
+
+                                if (relatedIncidentList.length === 1 && section == "Internal") {
+                                    relatedIncidentCheckbox = "";
+                                }
+                            });
+                            if (relatedIncidentList.length > 1) {
+                                relatedIncidentCheckbox += '</div>';
+                            }
+                            htmlElementIncident += "</div>";
+                            openModal(title);
+                        }
+                    });
+
+                    function openModal(title) {
+                        $('body').append('<div class="modal" id="update-incident-modal"><div class="modal-content"><div class="modal-header"><button class="close close-modal">X</button><h1>Update Incident Status</h1></div> <div class="modal-body"> <div class="modal-body-detail"><label>Incident Status</label> <div class="status-choices"> <input type="radio" id="sc1" name="status-choices" value="Investigating"> <label class="radio-label" for="sc1">Investigating</label> <input type="radio" id="sc2" name="status-choices" value="Identified"><label class="radio-label" for="sc2">Identified </label> <input type="radio" id="sc3" name="status-choices" value="Monitoring"> <label class="radio-label" for="sc3">Monitoring</label> <input type="radio" id="sc4" name="status-choices" value="Resolved"> <label class="radio-label" for="sc4">Resolved </label> </div> </div><div class="modal-body-detail incident-severity"><label>Incident Severity</label><br><select><option value="1">Operational</option><option value="3">Degraded Performance</option><option value="4">Minor Outage</option><option value="5">Major Outage</option></select></div><div id="update-internal-message" class="modal-body-detail" style="padding: 20px;border: 1px solid #ababab;border-radius: 5px; background-color:#fffdf6;"> <label style="margin-bottom: 10px;font-size:18px;">Internal Message </label><label class="gswitch" id="switch-internal"><input type="checkbox" id="internal-message-switch"><span class="gslider round"></span></label><div class="modalOptions" style="clear: both; display: block;margin-bottom:30px">Send alert to subscribers<label class="gswitch"><input type="checkbox" id="send-comment-notif"><span class="gslider round green"></span></label></div><textarea id="update-incident-body-internal" class="message-internal" placeholder="Message"></textarea> </div><div class="components-affected-update"></div><div id="no-internal-incident"class="modal-body-detail" style="padding: 20px;border: 1px solid #ababab;border-radius: 5px; background-color:#F5FDFE;display:none;"> <label style="margin-bottom: 10px;font-size:18px;">No Related Internal Incident</label></div><div id="update-external-message" class="modal-body-detail message-external" style="padding: 20px;border: 1px solid #ababab;border-radius: 5px; background-color:#F5FDFE; margin-top:20px;"> <label style="margin-bottom: 10px;font-size:18px;">External Message </label><a class="new-incident-btn incident-subscribe-button incident-save-button hide"><i class="fas fa-plus"></i> NEW INCIDENT</a><label class="gswitch" id="switch-external"><input type="checkbox" id="external-message-switch"><span class="gslider round"></span></label><div class="modalOptions" style="clear: both; display: block;margin-bottom:30px;">Send alert to subscribers<label class="gswitch"><input type="checkbox" id="send-comment-notif"><span class="gslider round green"></span></label></div><textarea id="update-incident-body-external" placeholder="Message"></textarea> </div></div><div class="modal-footer"><button class="btn btn-primary" id="update-incident-status">UPDATE STATUS<span class="hide">' + incidentID + '</span><span class="current-platform-id" id="' + currentSec + '"></span><span id="incident-title" style="display:none;">' + title + '</span></button></div></div></div>');
+
+                        //user-segment part
+                        var segmentUpdate = '<div class="segments-container"><label for="segments-select">Visible To</label>' + getUserSegmentsSelect() + ' </div>';
+                        $(segmentUpdate).insertAfter('#switch-internal');
+                        $(segmentUpdate).insertAfter('#switch-external');
+                        $('#update-internal-message .segments-select').val(internalUserSegmentID);
+                        $('#update-external-message .segments-select').val(externaluserSegmentID);
+
+                        $('#update-internal-message .segments-select').on('change', function() {
+                            if ($(this).val() != internalUserSegmentID) {
+                                internalSegmentChanged = true;
                             }
                         });
-                        if (relatedIncidentList.length > 1) {
-                            relatedIncidentCheckbox += '</div>';
-                        }
-                        htmlElementIncident += "</div>";
-                        openModal(title);
-                    }
-                });
 
-                function openModal(title) {
-                    $('body').append('<div class="modal" id="update-incident-modal"><div class="modal-content"><div class="modal-header"><button class="close close-modal">X</button><h1>Update Incident Status</h1></div> <div class="modal-body"> <div class="modal-body-detail"><label>Incident Status</label> <div class="status-choices"> <input type="radio" id="sc1" name="status-choices" value="Investigating"> <label class="radio-label" for="sc1">Investigating</label> <input type="radio" id="sc2" name="status-choices" value="Identified"><label class="radio-label" for="sc2">Identified </label> <input type="radio" id="sc3" name="status-choices" value="Monitoring"> <label class="radio-label" for="sc3">Monitoring</label> <input type="radio" id="sc4" name="status-choices" value="Resolved"> <label class="radio-label" for="sc4">Resolved </label> </div> </div><div class="modal-body-detail incident-severity"><label>Incident Severity</label><br><select><option value="1">Operational</option><option value="3">Degraded Performance</option><option value="4">Minor Outage</option><option value="5">Major Outage</option></select></div><div id="update-internal-message" class="modal-body-detail" style="padding: 20px;border: 1px solid #ababab;border-radius: 5px; background-color:#fffdf6;"> <label style="margin-bottom: 10px;font-size:18px;">Internal Message </label><label class="gswitch" id="switch-internal"><input type="checkbox" id="internal-message-switch"><span class="gslider round"></span></label><div class="modalOptions" style="clear: both; display: block;margin-bottom:30px">Send alert to subscribers<label class="gswitch"><input type="checkbox" id="send-comment-notif"><span class="gslider round green"></span></label></div><textarea id="update-incident-body-internal" class="message-internal" placeholder="Message"></textarea> </div><div class="components-affected-update"></div><div id="no-internal-incident"class="modal-body-detail" style="padding: 20px;border: 1px solid #ababab;border-radius: 5px; background-color:#F5FDFE;display:none;"> <label style="margin-bottom: 10px;font-size:18px;">No Related Internal Incident</label></div><div id="update-external-message" class="modal-body-detail message-external" style="padding: 20px;border: 1px solid #ababab;border-radius: 5px; background-color:#F5FDFE; margin-top:20px;"> <label style="margin-bottom: 10px;font-size:18px;">External Message </label><label class="gswitch" id="switch-external"><input type="checkbox" id="external-message-switch"><span class="gslider round"></span></label><div class="modalOptions" style="clear: both; display: block;margin-bottom:30px;">Send alert to subscribers<label class="gswitch"><input type="checkbox" id="send-comment-notif"><span class="gslider round green"></span></label></div><textarea id="update-incident-body-external" placeholder="Message"></textarea> </div></div><div class="modal-footer"><button class="btn btn-primary" id="update-incident-status">UPDATE STATUS<span class="hide">' + incidentID + '</span><span class="current-platform-id" id="' + currentSec + '"></span><span id="incident-title" style="display:none;">' + title + '</span></button></div></div></div>');
-                    var segmentUpdate = '<div class="segments-container"><label for="segments-select">Visible To</label>'+getUserSegmentsSelect()+' </div>'
-                    $(segmentUpdate).insertAfter('#switch-internal');
-                    $(segmentUpdate).insertAfter('#switch-external');
-                    $("#update-internal-message .gswitch input, #update-external-message .gswitch input").prop('checked', true);
-                    $('html').css('overflow', 'hidden');
-                    $('#update-incident-modal').fadeIn("fast");
-                    $('textarea#update-incident-body-internal').ckeditor();
-                    $('textarea#update-incident-body-external').ckeditor();
-                    if ($('#update-internal-message .gswitch input, #update-external-message .gswitch input').prop('checked')) {
-                        $('#send-comment-notif').prop('checked', true);
-                    } else {
-                        $('#send-comment-notif').prop('checked', false);
-                    }
-                    $('#update-incident-modal').find('textarea').val("");
-                    if ($(".incident-container").css('display') == 'block') {
-                        if (!($("#related-incident").is(':visible'))) {
+                        $('#update-external-message .segments-select').on('change', function() {
+                            if ($(this).val() != internalUserSegmentID) {
+                                externalSegmentChanged = true;
+                            }
+                        });
+                        $('#update-external-message .segments-select').val(externaluserSegmentID);
+                        //end user segment part
+
+                        $("#update-internal-message .gswitch input, #update-external-message .gswitch input").prop('checked', true);
+                        $('html').css('overflow', 'hidden');
+                        $('#update-incident-modal').fadeIn("fast");
+                        // $('textarea#update-incident-body-internal').ckeditor();
+                        // $('textarea#update-incident-body-external').ckeditor();
+                        if ($('#update-internal-message .gswitch input, #update-external-message .gswitch input').prop('checked')) {
+                            $('#send-comment-notif').prop('checked', true);
+                        } else {
+                            $('#send-comment-notif').prop('checked', false);
+                        }
+
+                        $('#update-incident-modal').find('textarea').val("");
+                        if ($(".incident-container").css('display') == 'block') {
+                            if (!($("#related-incident").is(':visible'))) {
+                                $(".modal-content .modal-footer").prepend(htmlElementIncident);
+                            }
+                        } else {
                             $(".modal-content .modal-footer").prepend(htmlElementIncident);
                         }
-                    } else {
-                        $(".modal-content .modal-footer").prepend(htmlElementIncident);
-                    }
-                    if (!($("#relatedIncidentAffected").is(':visible'))) {
-                        $('.components-affected-update').prepend(relatedIncidentCheckbox);
-                    }
-                    $('textarea#update-incident-body-internal').ckeditor();
-                    CKEDITOR.instances["update-incident-body-internal"].on("instanceReady", function(evt) {
-                        setTimeout(function() {
-                            CKEDITOR.instances["update-incident-body-internal"].plugins.lite.findPlugin(CKEDITOR.instances["update-incident-body-internal"]).toggleTracking(false, false);
-                            $('#update-incident-message-modal').fadeIn("fast");
-                        }, 100);
-                    })
-                    $('textarea#update-incident-body-external').ckeditor();
-                    CKEDITOR.instances["update-incident-body-external"].on("instanceReady", function(evt) {
-                        setTimeout(function() {
-                            CKEDITOR.instances["update-incident-body-external"].plugins.lite.findPlugin(CKEDITOR.instances["update-incident-body-external"]).toggleTracking(false, false);
-                            $('#update-incident-message-modal').fadeIn("fast");
-                        }, 100);
-                    })
-                    if (platform == messageBoardInternal) {
-                        $('.modal-body-detail.global-notifications .gswitch input').prop('checked', true);
-                        $('#updateMessage').css('background-color', '#FFFDF6');
+                        if (!($("#relatedIncidentAffected").is(':visible'))) {
+                            $('.components-affected-update').prepend(relatedIncidentCheckbox);
+                        }
 
-                        if ($('.modal-body-detail.global-notifications .gswitch input').prop('checked')) {
-                            $('.subscribe-global-notif').prop('checked', true);
+                        if (platform == messageBoardInternal || hasRelatedInternal) {
+                            $('textarea#update-incident-body-internal').ckeditor();
+                            CKEDITOR.instances["update-incident-body-internal"].on("instanceReady", function(evt) {
+                                setTimeout(function() {
+                                    CKEDITOR.instances["update-incident-body-internal"].plugins.lite.findPlugin(CKEDITOR.instances["update-incident-body-internal"]).toggleTracking(false, false);
+                                    $('#update-internal-message').fadeIn("fast");
+                                }, 200);
+                            })
+                        }
+
+                        if (platform != messageBoardInternal || hasRelatedIncidents) {
+                            $('textarea#update-incident-body-external').ckeditor();
+                            CKEDITOR.instances["update-incident-body-external"].on("instanceReady", function(evt) {
+                                setTimeout(function() {
+                                    CKEDITOR.instances["update-incident-body-external"].plugins.lite.findPlugin(CKEDITOR.instances["update-incident-body-external"]).toggleTracking(false, false);
+                                    $('#update-external-message').fadeIn("fast");
+                                }, 200);
+                            })
+                        }
+
+                        if (platform == messageBoardInternal) {
+                            $('.modal-body-detail.global-notifications .gswitch input').prop('checked', true);
+                            $('#updateMessage').css('background-color', '#FFFDF6');
+
+                            if ($('.modal-body-detail.global-notifications .gswitch input').prop('checked')) {
+                                $('.subscribe-global-notif').prop('checked', true);
+                            } else {
+                                $('.subscribe-global-notif').prop('checked', false);
+                            }
+                            if (!hasRelatedIncidents) {
+                                var externalMessage = document.getElementById("external-message-switch");
+                                externalMessage.checked = false;
+                                externalMessage.disabled = true;
+                                setTimeout(function() {
+                                    toggleExternalMessage();
+                                }, 200)
+                                $('#update-incident-modal').find('#switch-external').hide();
+                                $('#update-incident-modal').find('.new-incident-btn').removeClass('hide');
+                                internalIncident = currentArticle;
+                            }
+
                         } else {
-                            $('.subscribe-global-notif').prop('checked', false);
+                            if (!hasRelatedInternal) {
+                                var internalMessage = document.getElementById("internal-message-switch");
+                                console.log(internalMessage);
+                                internalMessage.checked = false;
+                                internalMessage.disabled = true;
+                                setTimeout(function() {
+                                    toggelInternalMessage();
+                                }, 200)
+                            }
                         }
-                        if (!hasRelatedIncidents) {
-                            var externalMessage = document.getElementById("external-message-switch");
-                            externalMessage.checked = false;
-                            externalMessage.disabled = true;
-                            setTimeout(function() {
-                                toggleExternalMessage();
-                            }, 100)
-                        }
-                    } else {
-                        if (!hasRelatedIncidents) {
-                            var internalMessage = document.getElementById("internal-message-switch");
-                            internalMessage.checked = false;
-                            internalMessage.disabled = true;
-                            setTimeout(function() {
-                                toggelInternalMessage();
-                            }, 100)
-                        }
+
+                        $('#internal-message-switch').on("click", toggelInternalMessage);
+                        $('#external-message-switch').on("click", toggleExternalMessage);
+
+                        //when user click on New Incident Button in Update Modal
+                        $('#update-incident-modal').find('.new-incident-btn').on('click', function() {
+                            var internalTitle = title.substr(title.lastIndexOf(']') + 1).trim();
+                            $('#update-incident-modal').toggle("slide", function() {
+                                $(this).remove();
+                            });
+                            newIncidentModal = $('#new-incident-modal').toggle('slide', {
+                                direction: 'right'
+                            });
+
+                            newIncidentModal.find('#new-external-message').ckeditor();
+                            CKEDITOR.instances["new-external-message"].on("instanceReady", function(evt) {
+                                setTimeout(function() {
+                                    CKEDITOR.instances["new-external-message"].plugins.lite.findPlugin(CKEDITOR.instances["new-external-message"]).toggleTracking(false, false);
+                                    $('#new-external-message').fadeIn("fast");
+                                }, 200)
+                            })
+
+                            if (!newIncidentModal.find('.segments-container').length) {
+                                $(segmentUpdate).insertAfter(newIncidentModal.find('#showHome'));
+                            }
+                            newIncidentModal.find('.components-affected input[type="checkbox"]').each(function() {
+                                if (affectedComponents.includes($(this).val())) {
+                                    $(this)[0].checked = true;
+                                }
+                            })
+                            newIncidentModal.find('#incident-name').val(internalTitle);
+                        })
                     }
-                    $('#internal-message-switch').on("click", toggelInternalMessage);
-                    $('#external-message-switch').on("click", toggleExternalMessage);
-
-
                 }
+                updateModal(incidentID);
             });
 
             $('.incident-view-page').on("click", "#update-incident-btn", function(event) {
@@ -1323,19 +1543,32 @@ $(document).ready(function() {
                     end_date = $('.incident-view-page .incident-list-item:last-child .incident-item-cont > span strong:nth-child(3)').text(),
                     start_date = start_date.replace("Maintenance Start: ", "").split(" ", 2),
                     end_date = end_date.replace("Maintenance End: ", "").split(" ", 2);
+                var backgroundColor = platform == messageBoardInternal ? "background-color: #fffdf6;" : "background-color: #F5FDFE;"
+                var segmentUpdate = '<div class="segments-container"><label for="segments-select">Visible To</label>' + getUserSegmentsSelect() + ' </div>'
                 $('html').css('overflow', 'hidden');
-                $('body').append('<div class="modal" id="update-incident-modal"> <div class="modal-content"> <div class="modal-header"><button class="close close-modal">X</button><h1>Update Maintenance Status </h1></div> <div class="modal-body"> <div class="modal-body-detail"> <label>Maintenance Status </label> <div class="status-choices"> <input type="radio" id="mc1" name="status-choices" value="New"> <label class="radio-label" for="mc1">New </label> <input type="radio" id="mc2" name="status-choices" value="Updated"> <label class="radio-label" for="mc2">Updated </label> <input type="radio" id="mc3" name="status-choices" value="Completed"> <label class="radio-label" for="mc3">Completed </label> </div> </div> <div class="modal-body-detail"> <label>Message </label> <br> <textarea id="update-incident-body" placeholder="Message"> </textarea> </div> <div> <input type="checkbox" id="send-time"> <label for="send-time" style="font-weight: 400;font-size: 15px;">Update time. </label> </div> <div class="maintenance-start"> <label>Maintenance Start Time </label> <div class="maintenance-time"> <input disabled type="date" value="' + start_date[0] + '"> <select disabled class="time-select"></select> </div> <span class="info">All times must be specified in EST - Eastern Standard Time(US &amp; Canada) </span> </div> <div class="maintenance-end"> <label>Maintenance End Time </label> <div class="maintenance-time"> <input disabled value="' + end_date[0] + '" type="date"> <select disabled class="time-select"></select> </div> <span class="info">All times must be specified in EST - Eastern Standard Time(US &amp; Canada) </span> </div> <div class="modal-body-detail"> <label>Notifications </label> <br> <input type="checkbox" checked id="send-comment-notif"> <label for="send-comment-notif" style="font-weight: 400">Send alert to subscribers about this update. </label></div></div><div class="modal-footer"><button class="btn btn-primary" id="update-maintenance-status">UPDATE STATUS <span class="hide">' + incident + ' </span> </button></div></div></div>'),
-                    populateTime();
-                $('textarea#update-incident-body').ckeditor();
-                CKEDITOR.instances["update-incident-body"].on("instanceReady", function(evt) {
-                    setTimeout(function() {
-                        CKEDITOR.instances["update-incident-body"].plugins.lite.findPlugin(CKEDITOR.instances["update-incident-body"]).toggleTracking(false, false);
-                        $('#update-incident-modal').find('textarea').val("");
-                        $('#update-incident-modal').fadeIn("fast");
-                    }, 300);
+                $.get('/api/v2/help_center/articles/' + incident).done(function(data) {
+                    var userSegmentVal = data.article.user_segment_id;
+                    $('body').append('<div class="modal" id="update-incident-modal"> <div class="modal-content"> <div class="modal-header"><button class="close close-modal">X</button><h1>Update Maintenance Status </h1></div> <div class="modal-body"> <div class="modal-body-detail"> <label>Maintenance Status </label> <div class="status-choices"> <input type="radio" id="mc1" name="status-choices" value="New"> <label class="radio-label" for="mc1">New </label> <input type="radio" id="mc2" name="status-choices" value="Updated"> <label class="radio-label" for="mc2">Updated </label> <input type="radio" id="mc3" name="status-choices" value="Completed"> <label class="radio-label" for="mc3">Completed </label> </div> </div> <div class="modal-body-detail maintenance-message" style="' + backgroundColor + '"> <label class="modal-body-header">Message </label>' + segmentUpdate + '<div class="modalOptions" style="clear: both; display: block;margin-bottom:30px;">Send alert to subscribers<label class="gswitch"><input type="checkbox" id="send-comment-notif" checked><span class="gslider round green"></span></label></div><textarea id="update-incident-body" placeholder="Message"> </textarea> </div> <div> <input type="checkbox" id="send-time"> <label for="send-time" style="font-weight: 400;font-size: 15px;">Update time. </label> </div> <div class="maintenance-start"> <label>Maintenance Start Time </label> <div class="maintenance-time"> <input disabled type="date" value="' + start_date[0] + '"> <select disabled class="time-select"></select> </div> <span class="info">All times must be specified in EST - Eastern Standard Time(US &amp; Canada) </span> </div> <div class="maintenance-end"> <label>Maintenance End Time </label> <div class="maintenance-time"> <input disabled value="' + end_date[0] + '" type="date"> <select disabled class="time-select"></select> </div> <span class="info">All times must be specified in EST - Eastern Standard Time(US &amp; Canada) </span></div></div><div class="modal-footer"><button class="btn btn-primary" id="update-maintenance-status">UPDATE STATUS <span class="hide">' + incident + ' </span> </button></div></div></div>'),
+                        populateTime();
+                    $('textarea#update-incident-body').ckeditor();
+                    $('#update-incident-modal .segments-select').val(userSegmentVal);
+                    CKEDITOR.instances["update-incident-body"].on("instanceReady", function(evt) {
+                        setTimeout(function() {
+                            CKEDITOR.instances["update-incident-body"].plugins.lite.findPlugin(CKEDITOR.instances["update-incident-body"]).toggleTracking(false, false);
+                            $('#update-incident-modal').find('textarea').val("");
+                            $('#update-incident-modal').fadeIn("fast");
+                        }, 300);
+                    })
+                    $('#update-incident-modal .maintenance-start .time-select').val(start_date[1]);
+                    $('#update-incident-modal .maintenance-end .time-select').val(end_date[1]);
+
+
+                    $('#update-incident-modal .segments-select').on('change', function() {
+                        if (userSegmentVal != $(this).val()) {
+                            mSegmentChanged = true;
+                        }
+                    })
                 })
-                $('#update-incident-modal .maintenance-start .time-select').val(start_date[1]);
-                $('#update-incident-modal .maintenance-end .time-select').val(end_date[1]);
             });
             $('body').on("change", "#send-time", function() {
                 if ($(this).is(":checked")) {
@@ -1383,17 +1616,24 @@ $(document).ready(function() {
             $('body').on('click', '#update-maintenance-status', function() {
                 console.log('%c Update Maintenance ', 'background:#006dcc; color:#ffffff;font-size:15px;');
                 $(this).attr('disabled', 'disabled');
+
                 var maintenanceID = $(this).children('.hide').text();
                 var platfromID = $('#platform_id').text()
                 var body = $('#update-incident-body').val();
                 var notifySubscribers = $('#send-comment-notif').is(':checked');
                 var newStatus = $('.status-choices input[name=status-choices]:checked').val();
+                var selectedUserSegment = $('#update-incident-modal .segments-select').val();
                 var maintenanceAjaxRequests = [];
+
+                selectedUserSegment = parseInt(selectedUserSegment);
                 maintenanceAjaxRequests.push(subscribeGlobalNotification(platfromID));
+                if (mSegmentChanged) {
+                    maintenanceAjaxRequests.push(updateUserSegment(maintenanceID, selectedUserSegment));
+                    mSegmentChanged = false;
+                }
                 $('#update-incident-modal').hide();
 
-                //if Update time checkbox is checked
-                if ($('#send-time').prop('checked')) {
+                if ($('#send-time').prop('checked')) { //if Update time checkbox is checked
                     var maintenanceStart = {},
                         maintenanceEnd = {},
                         $updateModal = $('#update-incident-modal');
@@ -1405,79 +1645,29 @@ $(document).ready(function() {
                     var maintenanceEndFormat = "Maintenance End: " + maintenanceEnd.date + " " + maintenanceEnd.time + " ";
                     body = "<strong>" + maintenanceStartFormat + "</strong><br><strong>" + maintenanceEndFormat + "</strong><br><br>" + body;
                 }
-
                 showLoadingAnimation();
-
-                function deleteMaintenanceLabel(label) {
-                    return {
-                        url: '/api/v2/help_center/articles/' + maintenanceID + '/labels/' + label.id + '.json',
-                        type: 'DELETE'
-                    }
-                }
-
-                function addMaintenanceLabel(labelName) {
-                    return {
-                        url: '/api/v2/help_center/articles/' + maintenanceID + '/labels.json',
-                        type: 'POST',
-                        data: {
-                            "label": {
-                                "name": labelName
-                            }
-                        }
-                    }
-                }
-
-                function addMaintenanceComment() {
-                    return {
-                        url: '/api/v2/help_center/articles/' + maintenanceID + '/comments.json',
-                        type: 'POST',
-                        data: {
-                            "comment": {
-                                "body": newStatus + " - " + body,
-                                "author_id": globalsupport_user_id,
-                                "locale": "en-us"
-                            },
-                            "notify_subscribers": notifySubscribers
-                        }
-                    }
-                }
-
-                function initMaintenanceRequests(arrReqs, idx) {
-                    console.log("\nRequest: ", arrReqs[idx]);
-                    $.ajax(arrReqs[idx]).done(function(data) {
-                        console.log('Status: %c Success ', 'background:#222; color:#00ff00');
-                        if (arrReqs[idx].type.toLowerCase() !== "delete") console.log("Response: ", data);
-                        if (idx < arrReqs.length - 1) {
-                            initMaintenanceRequests(arrReqs, idx + 1);
-                        } else {
-                            viewLatestMaintenance();
-                        }
-                    }).fail(function(data) {
-                        console.log('Status: %c Error ', 'background:#222; color:#ff0000');
-                        console.log("Response", data);
-                    })
-                }
-
-                function viewLatestMaintenance() {
-                    view_incident(maintenanceID);
-                }
                 console.log("\nRequest: ", '/api/v2/help_center/articles/' + maintenanceID + '/labels.json');
                 $.get('/api/v2/help_center/articles/' + maintenanceID + '/labels.json').done(function(labels) {
                     console.log('Status: %c Success ', 'background:#222; color:#00ff00');
                     console.log("Response: ", labels);
                     for (var ndx = 0; ndx < labels.labels.length; ndx++) {
                         if (labels.labels[ndx].name.indexOf('Status') > -1) {
-                            maintenanceAjaxRequests.push(deleteMaintenanceLabel(labels.labels[ndx]));
+                            maintenanceAjaxRequests.push(deleteArticleLabel(maintenanceID, labels.labels[ndx].id));
                             break;
                         }
                     }
-                    maintenanceAjaxRequests.push(addMaintenanceLabel("Status:" + newStatus));
-                    maintenanceAjaxRequests.push(addMaintenanceComment());
-                    initMaintenanceRequests(maintenanceAjaxRequests, 0);
+                    maintenanceAjaxRequests.push(addArticleLabel(maintenanceID, "Status:" + newStatus));
+                    maintenanceAjaxRequests.push(addArticleComment(maintenanceID, newStatus + " - " + body, notifySubscribers));
+                    initRequests(maintenanceAjaxRequests, 0, viewLatestMaintenance);
                 }).fail(function(data) {
                     console.log('Status: %c Error ', 'background:#222; color:#ff0000');
                     console.log("Response", data);
                 })
+
+                function viewLatestMaintenance() {
+                    $(this).removeAttr('disabled');
+                    view_incident(maintenanceID);
+                }
             })
 
             //when UPDATE STATUS button is clicked.
@@ -1508,12 +1698,6 @@ $(document).ready(function() {
                 param['message'] = $("#update-incident-body-external").val();
                 incidentIDs.push(parseInt(incidentID));
 
-                /*var loops = 0;
-                thismodal.find('.component-container input[type="checkbox"]:checked').each(function() {
-                    loops++,
-                    createIncident($(this).val(), param,
-                        (loops === componentsCunt && !$("#iExternal .gswitch input").prop('checked')));
-                })**/
 
                 if ($("#internal-message-switch").is(':checked')) {
                     updateIncident(currentInternalIncidentID, currentInternalIncidentTitle, messageBoardInternal);
@@ -1534,13 +1718,13 @@ $(document).ready(function() {
                     var in_status = $('.status-choices input[name=status-choices]:checked').val();
                     var notif = $('#update-external-message input[type="checkbox"]#send-comment-notif').is(":checked"),
                         mes_body = $('#update-incident-body-external').val(),
-                        userSegment = $('#update-external-message .segment-select').val();
+                        userSegment = $('#update-external-message .segments-select').val();
                     if (sectionID == messageBoardInternal) {
                         notif = $('#update-internal-message input[type="checkbox"]#send-comment-notif').is(":checked");
                         mes_body = $('#update-incident-body-internal').val();
-                        userSegment = $('#update-internal-message .segment-select').val();
+                        userSegment = $('#update-internal-message .segments-select').val();
                     }
-
+                    userSegment = parseInt(userSegment);
                     var title = incidentTitle;
                     var up_title = title.substr(title.indexOf("] ") + 1);
                     var body = in_status + ":<br><br>" + mes_body;
@@ -1553,61 +1737,14 @@ $(document).ready(function() {
                     var ajaxRequests = [];
 
                     ajaxRequests.push(subscribeGlobalNotification(sectionID))
-                    ajaxRequests.push({
-                        url: '/api/v2/help_center/articles/' + incident + '/translations/en-us.json',
-                        type: 'PUT',
-                        data: {
-                            "translation": {
-                                "title": "[" + in_status + "] " + up_title
-                            }
-                        }
-                    });
+                    ajaxRequests.push(updateArticleTitle(incident, "[" + in_status + "] " + up_title));
 
-                    function deleteLabel(label) {
-                        return {
-                            url: '/api/v2/help_center/articles/' + incident + '/labels/' + label.id + '.json',
-                            type: 'DELETE'
-                        }
-
+                    if (sectionID == messageBoardInternal && internalSegmentChanged) {
+                        ajaxRequests.push(updateUserSegment(incident, userSegment));
+                        internalSegmentChanged = false;
                     }
-
-                    function addUserSegment(){
-                        return {
-                            url: '/api/v2/help_center/articles/' + incident + '/translations/en-us.json',
-                            type: 'PUT',
-                            data: {
-                                "article": {
-                                    "user_segement_id": parseInt(userSegment)
-                                }
-                            }
-                        }
-                    }  
-
-                    function addLabel(labelName) {
-                        return {
-                            url: '/api/v2/help_center/articles/' + incident + '/labels.json',
-                            type: 'POST',
-                            data: {
-                                "label": {
-                                    "name": labelName
-                                }
-                            }
-                        }
-                    }
-
-                    function addComment(body) {
-                        return {
-                            url: '/api/v2/help_center/articles/' + incident + '/comments.json',
-                            type: 'POST',
-                            data: {
-                                "comment": {
-                                    "body": body,
-                                    "author_id": globalsupport_user_id,
-                                    "locale": "en-us"
-                                },
-                                "notify_subscribers": notif
-                            }
-                        }
+                    if (sectionID != messageBoardInternal && externalSegmentChanged) {
+                        ajaxRequests.push(updateUserSegment(incident, userSegment));
                     }
 
                     function initRequests(arrReqs, idx) {
@@ -1624,12 +1761,12 @@ $(document).ready(function() {
                             console.log('Status: %c Error ', 'background:#222; color:#ff0000');
                             console.log("Response", data);
                         })
-
                     }
 
                     function endReq() {
                         incidentsUpdated++;
                         if (incidentsUpdated === num_Incidents) {
+                            externalSegmentChanged = false;
                             view_incident(incidentID);
                         }
                         $currentIncident.removeAttr("disabled");
@@ -1650,17 +1787,16 @@ $(document).ready(function() {
                             var label = labels.labels[q];
 
                             if (label.name.indexOf("Status:") > -1 && !(label.name.includes(in_status))) {
-                                ajaxRequests.push(deleteLabel(label));
-                                ajaxRequests.push(addLabel("Status:" + in_status));
+                                ajaxRequests.push(deleteArticleLabel(incident, label.id));
+                                ajaxRequests.push(addArticleLabel(incident, "Status:" + in_status));
                             }
 
                             if (label.name.indexOf("Severity:") > -1 && !(label.name.includes(severity))) {
-                                ajaxRequests.push(deleteLabel(label));
-                                ajaxRequests.push(addLabel("Severity:" + severity));
+                                ajaxRequests.push(deleteArticleLabel(incident, label.id));
+                                ajaxRequests.push(addArticleLabel(incident, "Severity:" + severity));
                             }
                         }
-                        ajaxRequests.push(addUserSegment());
-                        ajaxRequests.push(addComment(body));
+                        ajaxRequests.push(addArticleComment(incident, body, notif));
                         initRequests(ajaxRequests, 0);
                     }).fail(function(err) {
                         console.log('Status: %c Fail ', 'background:#222; color:#ff0000');
@@ -1678,13 +1814,14 @@ $(document).ready(function() {
                 var in_title = $('#new-incident-template-modal .incident-title input').val();
                 var in_message = $('#new-incident-template-modal .incident-message textarea').val();
                 var affected = "";
+              
                 $('#new-incident-template-modal input.affected-component:checkbox:checked').each(function() {
                     affected = $(this).val() + ',' + affected;
                 });
                 if (template_name == "" || in_title == "") {
                     alert("Please fill up all the fields.");
                     $(this).removeAttr("disabled");
-                    return false
+                    return false;
                 }
                 if (affected == "") {
                     alert("Please select atleast one components.");
@@ -1724,9 +1861,16 @@ $(document).ready(function() {
                 var in_title = $('#new-incident-template-modal .incident-title input').val();
                 var in_message = $('#new-incident-template-modal .incident-message textarea').val();
                 var affected = "";
+                $().new
                 $('#new-incident-template-modal input.affected-component:checkbox:checked').each(function() {
                     affected = $(this).val() + ',' + affected;
                 });
+
+
+
+
+
+
                 if (template_name == "" || in_title == "") {
                     alert("Please fill up all the fields.");
                     $(this).removeAttr("disabled");
@@ -1946,6 +2090,7 @@ $(document).ready(function() {
                 $(this).css('background', 'linear-gradient(to right, #fff 88%,' + status_colors[platform_status - 1]);
                 refresh = true;
             });
+
             $('.incident-view-page').on("click", ".edit_body a", function() {
                 var start_date = $(this).closest('.incident-list-item').find('.incident-item-cont > span strong:first').text();
                 var end_date = $(this).closest('.incident-list-item').find('.incident-item-cont > span strong:nth-child(3)').text();
@@ -2082,14 +2227,14 @@ $(document).ready(function() {
                 $(this).closest(".modal").fadeOut("fast");
             });
             $('#new-incident-template').on("click", function() {
-          
                 cleanModal();
-                $('#new-incident-template-modal').fadeIn("fast");       
-                var body = $(this).closest(".incident-list-item").children(".incident-item-cont").children("span.hide").html();
-                var time = '';
-            $('#new-incident-template-modal .modal-body').append('<div class="modal-body-detail incident-message"> <label>Message Body </label> <br> <textarea placeholder="Message" style="margin-top: 0px; margin-bottom: 0px; height: 80px; visibility: hidden; display: none;"> </textarea> </div>');
-            CKEDITOR.append('#new-incident-template-modal .modal-body')
-           
+                console.log(getUserSegmentsSelect());
+                console.log( $('.modal-header'))
+                $('#new-incident-template-modal .modal-body-detail-internal').prepend(getUserSegmentsSelect());
+                $('#new-incident-template-modal .modal-body-detail-external' ).prepend(getUserSegmentsSelect());
+                $('#new-incident-template-modal .components-affected' ).append('<label class="switch"> <input type="checkbox"checked><span class="slider round"></span></label>');
+
+                $('#new-incident-template-modal').fadeIn("fast");
             });
             $('#new-maintenance-template').on("click", function() {
                 cleanModal();
@@ -2101,10 +2246,10 @@ $(document).ready(function() {
                 $('.incident-lists-item div:contains("' + search + '")').show();
             });
 
-            function getUserSegmentName(userSegmentID){
-                if(userSegmentID){
-                     for(var x = 0, len = userSegments.length;x < len;x++){
-                        if(userSegments[x].id == userSegmentID){
+            function getUserSegmentName(userSegmentID) {
+                if (userSegmentID) {
+                    for (var x = 0, len = userSegments.length; x < len; x++) {
+                        if (userSegments[x].id == userSegmentID) {
                             return userSegments[x].name;
                         }
                     }
@@ -2112,112 +2257,112 @@ $(document).ready(function() {
                 return 'Everyone';
             }
             //add loading animation on click of pagination
-            function addSpinner(section, index){
+            function addSpinner(section, index) {
                 index++;
                 var $currentPage = $('#incident-' + section + ' .incident-list .pagination').children('li').get(index);
-                $($currentPage).children('a').text('').css('padding','0px 7px');
+                $($currentPage).children('a').text('').css('padding', '0px 7px');
                 $($currentPage).children('a').append('<div class="spinner"><div class="bounce1"></div><div class="bounce2"></div><div class="bounce3"></div></div>')
             }
             //add Pagination to the selected platform
-            function addPagination(section, page, pageCount){
+            function addPagination(section, page, pageCount) {
                 var disableFirst = "";
                 var disableLast = "";
-                if(page == 1){
+                if (page == 1) {
                     disableFirst = "disabled";
                 }
-                if(page == pageCount){
+                if (page == pageCount) {
                     disableLast = "disabled";
                 }
                 var pagination = '<div><ul class="pagination" style="width:' + getPaginationWidth(pageCount) + '% !important;"><li class="page-item ' + disableFirst + ' relative first-button"><a class="page-link" aria-label="First"><span aria-hidden="true">&laquo;</span></a></li><li class="page-item ' + disableFirst + ' relative previous-button"><a class="page-link" aria-label="Previous"><span aria-hidden="true">‹</span></a></li>';
-                var startingPage= 1;
-                var lastPage= 10;
-                var pageCountDiff = pageCount - page;//difference between selected page and number og page 
-                if(pageCount > 10 && page > 6){
+                var startingPage = 1;
+                var lastPage = 10;
+                var pageCountDiff = pageCount - page; //difference between selected page and number og page 
+                if (pageCount > 10 && page > 6) {
                     startingPage = page - 5;
                     lastPage = page + 4;
                 }
-                if(pageCountDiff < 4){
+                if (pageCountDiff < 4) {
                     lastPage = pageCount;
                     startingPage = startingPage - (4 - pageCountDiff);
                 }
-                for(var x=1;x <= pageCount;x++){
+                for (var x = 1; x <= pageCount; x++) {
                     var hiddenPage = "";
-                    var active="";
-                    if(x < startingPage || x > lastPage){
+                    var active = "";
+                    if (x < startingPage || x > lastPage) {
                         hiddenPage = "hide";
                     }
-                    if(x == page){
+                    if (x == page) {
                         active = "active";
                     }
-                    pagination += '<li class="page-item '+ active + hiddenPage +'" ><a>' + x + '</a></li>';
+                    pagination += '<li class="page-item ' + active + hiddenPage + '" ><a>' + x + '</a></li>';
                 }
                 pagination += '<li class="page-item relative ' + disableLast + ' next-button"><a class="page-link" aria-label="Next"><span aria-hidden="true">›</span></a></li><li class="page-item relative ' + disableLast + ' last-button"><a class="page-link" aria-label="Last"><span aria-hidden="true">&raquo;</span></a></li></ul></div>';
 
                 $('#incident-' + section + ' .incident-list').append(pagination);
 
-                $('#incident-' + section + ' .incident-list .pagination').children('li').not('.active, .disabled, .relative').on('click', function(){
+                $('#incident-' + section + ' .incident-list .pagination').children('li').not('.active, .disabled, .relative').on('click', function() {
                     get_incident_list(section, $(this).children('a').text());
                 })
 
-                if(!disableFirst){//if selected page in pagination is one
-                    $('#incident-' + section + ' .incident-list .pagination .first-button').on('click', function(){
+                if (!disableFirst) { //if selected page in pagination is one
+                    $('#incident-' + section + ' .incident-list .pagination .first-button').on('click', function() {
                         get_incident_list(section, 1);
                     })
-    
-                    $('#incident-' + section + ' .incident-list .pagination .previous-button').on('click', function(){
-                        get_incident_list(section, page -1);
+
+                    $('#incident-' + section + ' .incident-list .pagination .previous-button').on('click', function() {
+                        get_incident_list(section, page - 1);
                     })
                 }
-                
-                if(!disableLast){//if selected page in pagination is the last page
-                    $('#incident-' + section + ' .incident-list .pagination .next-button').on('click', function(){
+
+                if (!disableLast) { //if selected page in pagination is the last page
+                    $('#incident-' + section + ' .incident-list .pagination .next-button').on('click', function() {
                         get_incident_list(section, page + 1);
                     })
-                    $('#incident-' + section + ' .incident-list .pagination .last-button').on('click', function(){
+                    $('#incident-' + section + ' .incident-list .pagination .last-button').on('click', function() {
                         get_incident_list(section, pageCount);
                     })
                 }
             }
 
-            function checkPageCount(sectionID){
-                if(sectionID == messageBoardSAS){
+            function checkPageCount(sectionID) {
+                if (sectionID == messageBoardSAS) {
                     return sasNumPage;
                 }
-                if(sectionID == messageBoardMDX){
+                if (sectionID == messageBoardMDX) {
                     return mdxNumPage;
                 }
-                if(sectionID == messageBoardDSP){
+                if (sectionID == messageBoardDSP) {
                     return dspNumPage;
                 }
-                if(sectionID == messageBoardDMP){
+                if (sectionID == messageBoardDMP) {
                     return dmpNumPage;
                 }
-                if(sectionID == messageBoardSiteOP){
+                if (sectionID == messageBoardSiteOP) {
                     return siteOpNumPage;
                 }
-                if(sectionID == messageBoardInternal){
+                if (sectionID == messageBoardInternal) {
                     return internalNumPage;
                 }
                 return 0;
             }
-            
-            function setPageCount(sectionID, count){
-                if(sectionID == messageBoardSAS){
+
+            function setPageCount(sectionID, count) {
+                if (sectionID == messageBoardSAS) {
                     sasNumPage = count;
                 }
-                if(sectionID == messageBoardMDX){
+                if (sectionID == messageBoardMDX) {
                     mdxNumPage = count;
                 }
-                if(sectionID == messageBoardDSP){
+                if (sectionID == messageBoardDSP) {
                     dspNumPage = count;
                 }
-                if(sectionID == messageBoardDMP){
+                if (sectionID == messageBoardDMP) {
                     dmpNumPage = count;
                 }
-                if(sectionID == messageBoardSiteOP){
+                if (sectionID == messageBoardSiteOP) {
                     siteOpNumPage = count;
                 }
-                if(sectionID == messageBoardInternal){
+                if (sectionID == messageBoardInternal) {
                     internalNumPage = count;
                 }
                 return 0;
@@ -2225,91 +2370,91 @@ $(document).ready(function() {
 
 
             //return appropriate with depending on the number of pages.
-            function getPaginationWidth(page){
-                if(page >= 10){
+            function getPaginationWidth(page) {
+                if (page >= 10) {
                     return 55;
                 }
                 return (page + 4) * 3.8;
             }
 
-            function getPageCount(sectionID){
-                return $.get('/api/v2/help_center/articles/search.json?label_names=Type:Incident,Type:Maintenance&section='+ sectionID +'&per_page=20&page=1');
+            function getPageCount(sectionID) {
+                return $.get('/api/v2/help_center/articles/search.json?label_names=Type:Incident,Type:Maintenance&section=' + sectionID + '&per_page=20&page=1');
             }
 
 
-            function get_incident_list(section, page){
+            function get_incident_list(section, page) {
                 addSpinner(section, page);
-                var $lastPageIncidents = $('#incident-'+ section +' .incident-list').children();
+                var $lastPageIncidents = $('#incident-' + section + ' .incident-list').children();
                 var numberOfPage = checkPageCount(section);
-                if(!numberOfPage){
+                if (!numberOfPage) {
                     showLoadingAnimation();
-                    getPageCount(section).done(function(result){
+                    getPageCount(section).done(function(result) {
                         numberOfPage = result.page_count;
                         setPageCount(section, result.page_count);
                         getOrderedIncidents();
                     })
-                }else{
+                } else {
                     getOrderedIncidents();
                 }
 
-                function getOrderedIncidents(){
-                $.get('/api/v2/help_center/en-us/sections/'+ section +'/articles.json?per_page=20&page='+page).done(function(data){
-                    var newPageIncidents = '';
-                    for (var x = 0, len = data.articles.length; x < len; x++) {
-                        var label = data.articles[x].label_names,
-                            type = "",
-                            archive = "Archive",
-                            op_class = "activate",
-                            hidden = "",
-                            op_class2 = "",
-                            getIncidentListStatus = "",
-                            segmentID = data.articles[x].user_segment_id;
-                        for (var i = 0; i < label.length; i++) {
-                            if (label[i].includes("Type:")) {
-                                type = label[i].replace("Type:", "")
+                function getOrderedIncidents() {
+                    $.get('/api/v2/help_center/en-us/sections/' + section + '/articles.json?per_page=20&page=' + page).done(function(data) {
+                        var newPageIncidents = '';
+                        for (var x = 0, len = data.articles.length; x < len; x++) {
+                            var label = data.articles[x].label_names,
+                                type = "",
+                                archive = "Archive",
+                                op_class = "activate",
+                                hidden = "",
+                                op_class2 = "",
+                                getIncidentListStatus = "",
+                                segmentID = data.articles[x].user_segment_id;
+                            for (var i = 0; i < label.length; i++) {
+                                if (label[i].includes("Type:")) {
+                                    type = label[i].replace("Type:", "")
+                                }
+                                if (label[i] == "Archived") {
+                                    archive = "Unarchive";
+                                    op_class = "activated";
+                                }
+                                if (label[i] == "Hidden") {
+                                    hidden = "Show";
+                                    op_class2 = "activate";
+                                } else if (label[i] == "ShowInHomepage") {
+                                    hidden = "Hide";
+                                    op_class2 = "activated";
+                                }
+                                if (label[i].includes("Status:")) {
+                                    getIncidentListStatus = label[i].replace("Status:", "").toUpperCase();
+                                }
                             }
-                            if (label[i] == "Archived") {
-                                archive = "Unarchive";
-                                op_class = "activated";
-                            }
-                            if (label[i] == "Hidden") {
-                                hidden = "Show";
-                                op_class2 = "activate";
-                            } else if (label[i] == "ShowInHomepage") {
-                                hidden = "Hide";
-                                op_class2 = "activated";
-                            }
-                            if (label[i].includes("Status:")) {
-                                getIncidentListStatus = label[i].replace("Status:", "").toUpperCase();
+                            if (type != "Template" && type != "") {
+                                var incident_id = data.articles[x].id;
+                                var title = data.articles[x].title;
+                                var url = data.articles[x].html_url;
+                                var date = data.articles[x].created_at;
+                                var date_created = new Date(date);
+                                if (title[0] === "[" && type != "Maintenance") {
+                                    title = title.slice(title.indexOf(']') + 1, title.length);
+                                }
+                                if (hidden != "") {
+                                    var hidden = '</a><a class="incident-item-hide ' + op_class2 + '">' + hidden + '</a>';
+                                }
+                                var archiveButton = '';
+                                if (section != sas) {
+                                    archiveButton = '<a class="incident-item-archive ' + op_class + '">' + archive + '</a>';
+                                }
+                                newPageIncidents += '<div class="incident-list-item"><div class="incident-item-body"><h5>' + getIncidentLabel(getIncidentListStatus) + title + '</h5><small>Posted on ' + date_created.toDateString() + " " + date_created.toLocaleTimeString() + '</small><span class="label user-segments-label">' + getUserSegmentName(segmentID) + '</span></div><div class="incident-item-action"><a class="incident-item-view">View ' + type + '</a>' + hidden + archiveButton + '<a class="incident-subscribe-button" id="incident-item-delete">Delete</a><a class="incident-subscribe-button" id="update-' + type.toLowerCase() + '-btn">Update<span class="hide">' + incident_id + '</span><span id="platform_id" style="display:none;">' + section + '</span></a></div></div>';
                             }
                         }
-                        if (type != "Template" && type != "") {
-                            var incident_id = data.articles[x].id;
-                            var title = data.articles[x].title;
-                            var url = data.articles[x].html_url;
-                            var date = data.articles[x].created_at;
-                            var date_created = new Date(date);
-                            if (title[0] === "[" && type != "Maintenance") {
-                                title = title.slice(title.indexOf(']') + 1, title.length);
-                            }
-                            if (hidden != "") {
-                                var hidden = '</a><a class="incident-item-hide ' + op_class2 + '">' + hidden + '</a>';
-                            }
-                            var archiveButton = '';
-                            if (section != sas) {
-                                archiveButton = '<a class="incident-item-archive ' + op_class + '">' + archive + '</a>';
-                            }
-                            newPageIncidents +='<div class="incident-list-item"><div class="incident-item-body"><h5>' + getIncidentLabel(getIncidentListStatus) + title + '</h5><small>Posted on ' + date_created.toDateString() + " " + date_created.toLocaleTimeString() + '</small><span class="label user-segments-label">'+getUserSegmentName(segmentID) +'</span></div><div class="incident-item-action"><a class="incident-item-view">View ' + type + '</a>' + hidden + archiveButton +'<a class="incident-subscribe-button" id="incident-item-delete">Delete</a><a class="incident-subscribe-button" id="update-' + type.toLowerCase() + '-btn">Update<span class="hide">' + incident_id + '</span><span id="platform_id" style="display:none;">' + section + '</span></a></div></div>';
+                        $('#incident-' + section + ' .incident-list').append(newPageIncidents);
+                        hideLoadingAnimation();
+                        if (numberOfPage > 1) {
+                            addPagination(section, data.page, numberOfPage);
                         }
-                    }
-                    $('#incident-' + section + ' .incident-list').append(newPageIncidents);
-                    hideLoadingAnimation();
-                    if(data.page_count > 1){
-                        addPagination(section , data.page, numberOfPage);
-                    }
-                    $lastPageIncidents.remove();
-                    $('.message-board-container').scrollTo(0, 0);
-                })
+                        $lastPageIncidents.remove();
+                        $('.message-board-container').scrollTo(0, 0);
+                    })
                 }
             }
 
@@ -2616,7 +2761,7 @@ $(document).ready(function() {
                 var view_page = 'main:not(.messageBoard) ';
                 var containerClass = "related-articles-view";
             }
-            $(view_page + '.incident-view-page').html('<div class="loading-animation"><img src="'+ gSZMKspingreyGIFURL +'" style="border:0px"></div>');
+            $(view_page + '.incident-view-page').html('<div class="loading-animation"><img src="' + gSZMKspingreyGIFURL + '" style="border:0px"></div>');
             $.get('/api/v2/help_center/en-us/articles/' + incident_id).done(function(data) {
                 var currentIncident = data.article;
                 viewedIncidentTitle = currentIncident.title;
@@ -2711,12 +2856,13 @@ $(document).ready(function() {
                     var incidentStatus = in_status;
                     var incidentBody = body;
 
-                    if(body.indexOf(':<br><br>') > 1){
+                    if (body.indexOf(':<br><br>') > 1) {
                         incidentStatus = body.split(':<br><br>', 1);
                         incidentBody = body.substr(body.indexOf(':<br><br>') + 1);
                     }
                     $(view_page + '.incident-view-page').html('<div class="incident-container-show"><div class="incident-navigation"> <div class="incident-nav-header"><div class="incident-header-title" id="incident-title-' + in_severity + '">' + getIncidentLabel(in_status.toUpperCase()) + title + '</div><span class="hide">' + incident_id + '</span></div><h3 class="sub-header">Previous Updates</h3></div> <div class="incident-list-cont show"> <div class="incident-list"><div class="incident-list-item"><div class="incident-item-body"><h5>' + incidentStatus + '</h5></div><div class="incident-item-cont">' + incidentBody + '<br><small class="small">Posted on ' + date_created.toDateString() + " " + date_created.toLocaleTimeString() + '</small><span class="hide">' + body + '<span></div><div class="edit_body"><a>Edit</a></div></div></div><a id="back-incident-list" class="plain-button"><br><span style="font-family:arial">←</span> Incidents</a></div></div>')
-                    if (in_severity) {0
+                    if (in_severity) {
+                        0
                         $(view_page + '.incident-container-show .incident-header-title').css('color', status_colors[in_severity - 1]);
                     } else if (type == "Maintenance") {
                         $(view_page + '.incident-container-show .incident-header-title').css('color', 'rgb(52, 152, 219)');
@@ -2729,6 +2875,7 @@ $(document).ready(function() {
                             $(view_page + ".incident-view-page .incident-list-cont").append('<a id="delete-incident-btn" class="incident-subscribe-button incident-delete-button">DELETE<span class="hide">' + incident_id + '</span></a><a id=' + update_btn_id + ' class="incident-subscribe-button incident-update-button">Update<span class="hide">' + incident_id + '</span><span style="display:none" id="platform_id">' + platform + '</span></a>' + htmlElementView);
                         }, 200)
                     }
+
                     $.get('/api/v2/help_center/articles/' + incident_id + '/comments.json').done(function(comments) {
                         for (var x = comments.count - 1; x >= 0; x--) {
                             var update_id = comments.comments[x].id;

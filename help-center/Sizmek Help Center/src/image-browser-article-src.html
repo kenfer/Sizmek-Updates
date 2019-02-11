@@ -1,0 +1,155 @@
+<h2>Upload a new image</h2>
+<form id="uploadForm" action="#" enctype="multipart/form-data" method="post" novalidate="novalidate"><input id="file_input" accept=".jpg,.png,.gif" name="file" type="file" /> <input id="upload_button" type="submit" value="Upload Image" /></form>
+<p>
+<script>// <![CDATA[
+var articleID;
+
+    function getUrlParam(paramName) {
+        var reParam = new RegExp('(?:[\?&]|&)' + paramName + '=([^&]+)', 'i');
+        var match = window.location.search.match(reParam);
+
+        return (match && match.length > 1) ? match[1] : null;
+    }
+    function returnFileUrl() {
+        var funcNum = getUrlParam('CKEditorFuncNum');
+        var fileUrl = $(".image_picker_selector").find(".selected").find("img").attr("src");
+
+        if(fileUrl != undefined) {
+	        window.opener.CKEDITOR.tools.callFunction(funcNum, fileUrl);
+	        window.close();
+	    } else {
+            bootbox.alert("You have not selected any image!");  	
+	    }
+    }
+    function deleteImage() {
+        var fileId = $("#gallerySelect option:selected").val();
+
+        if(fileId != undefined && fileId != "") {
+	        bootbox.dialog({
+			  message: "Are you sure you want to delete the selected image?",
+			  title: "Confirm Delete",
+			  buttons: {
+			    delete: {
+			      label: "DELETE",
+			      className: "btn-danger",
+			      callback: function() {
+			        	$.ajax({
+                            url: "/api/v2/help_center/articles/attachments/" + fileId + ".json",
+                            type: 'DELETE',
+                            dataType: 'json',
+                            contentType: 'application/json',
+                            processData: false,
+                            success: function(data) {
+        						bootbox.alert("Image deleted successfully.");
+        						resetImageList();
+                            },
+                            error: function() {
+            					bootbox.alert("There was an error deleting the image, please try again later.");  	
+            					resetImageList();
+                            }
+                        });
+			      }
+			    },
+			    cancel: {
+			      label: "CANCEL",
+			      className: "btn-default",
+			      callback: function() {
+			      	//do nothing
+			      }
+			    }
+			  }
+			});
+	    } else {
+            bootbox.alert("Please select an image to delete.");  	
+	    }
+    }
+    function cancelImageAdd() {
+        if(getUrlParam('articleId') != null ||  articleID != "209729503") window.close();
+    }
+    function resetImageList() {
+		var attachId, attachURL;
+
+		$("#gallerySelect").find("option:gt(0)").remove();
+
+		$.getJSON("/api/v2/help_center/articles/" + articleID + "/attachments.json", function(data) {
+		    $.each(data["article_attachments"], function(key, val) {
+	        	$.each(val, function(fileKey, fileVal) {
+		            if (fileKey == "id") attachId = fileVal;
+		            if (fileKey == "content_url") attachURL = fileVal;
+		        });
+	       		$("#gallerySelect").append('<option value=' + attachId + ' data-img-src=' + attachURL + '>' + attachId + '</option>');
+		    });
+			$("#gallerySelect").imagepicker();
+		});
+    }
+
+ 	if(getUrlParam('articleId') == null) articleID = "209729503";
+ 	else articleID = getUrlParam('articleId');
+
+	var form = document.getElementById('uploadForm');
+    var fileSelect = document.getElementById('file_input');
+    var uploadButton = document.getElementById('upload_button');
+
+    form.onsubmit = function(event) {
+        event.preventDefault();
+
+        var files = fileSelect.files;
+        var handler = "/api/v2/help_center/articles/" + articleID + "/attachments.json";
+        var formData = new FormData();
+
+        if (files[0] != undefined) {
+            formData.append('file', files[0], files[0].name);
+            formData.append('inline', 'true');
+
+            $("#file_input").prop('disabled', true);
+            $("#upload_button").prop('disabled', true);
+            $("#upload_button").val('Uploading...');
+            $.ajax({
+                url: handler,
+                type: 'POST',
+                contentType: false,
+                processData: false,
+                data: formData,
+                success: function(data) {
+            		bootbox.alert("Image uploaded successfully!");  
+		            form.reset();
+		            $("#file_input").prop('disabled', false);
+		            $("#upload_button").prop('disabled', false);
+		            $("#upload_button").val('Upload Image');
+            		resetImageList();
+                },
+                error: function() {
+            		bootbox.alert("Image uploaded failed!");  
+                    form.reset();
+                    $("#file_input").prop('disabled', false);
+                    $("#upload_button").prop('disabled', false);
+                    $("#upload_button").val('Upload Image');
+                    resetImageList();
+                }
+            });
+        } else {
+            bootbox.alert("Please browse and select the image file to upload!");
+        }
+    }
+// ]]></script>
+</p>
+<hr />
+<h2>Select an image to add to the page</h2>
+<select id="gallerySelect" class="image-picker show-labels show-html">
+<option value=""></option>
+</select>
+<p> </p>
+<p><button id="selectBtn" class="btn btn-primary">Use Image</button> <button id="deleteBtn" class="btn btn-danger" style="margin-left: 10px;">Delete</button> <button id="cancelBtn" class="btn btn-default" style="margin-left: 10px;">Cancel</button></p>
+<script type="text/javascript">// <![CDATA[
+resetImageList();
+
+	$("#selectBtn").click(function() {
+	    returnFileUrl()
+	});
+	$("#deleteBtn").click(function() {
+	    deleteImage()
+	});
+	$("#cancelBtn").click(function() {
+	    cancelImageAdd()
+	});
+// ]]></script>

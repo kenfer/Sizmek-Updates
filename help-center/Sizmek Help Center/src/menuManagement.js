@@ -2,7 +2,7 @@
 // Author: Jomar Q. Edaño
 // Ver 1.01
 // Most of the css here are under messageBoardStyle.css
-$(document).ready(function () {
+$(document).ready(function() {
     var addNew = '<li class="addNew"><a class="addNewButton">+ ADD</a></li>';
     menuObj = {},
         menuCopy = "",
@@ -17,7 +17,6 @@ $(document).ready(function () {
         sectionsLastIndex = 0,
         articlesChangeLOC = [],
         articleUpdate = false,
-        sectionUpdate = false,
         oldIndex = 0,
         newIndex = 0,
         sectionsToHide = [],
@@ -26,7 +25,7 @@ $(document).ready(function () {
         articlesToShow = [];
 
     if (jQuery.inArray("view_support_content", HelpCenter.user.tags) !== -1) {
-        $("#user-menu").append("<a id='menuAdmin' role='menuitem' href='/hc/en-us/articles/"+ menuManagementPage +"'>Menu Management</a>");
+        $("#user-menu").append("<a id='menuAdmin' role='menuitem' href='/hc/en-us/articles/" + menuManagementPage + "'>Menu Management</a>");
     }
 
     //Main flow
@@ -37,13 +36,13 @@ $(document).ready(function () {
         $mainWrapper.append('<button id="save-changes" type="button" class="btn btn-primary" disabled>Save</button>');
         instantiateMenuObject();
         //when product drop down is change
-        $('body').on('change', '#products', function () {
+        $('body').on('change', '#products', function() {
             updateItems();
             disableSelect();
         });
 
         //when collapse icon is click
-        $('body').on('click', '.menuManagement .fa.fa-angle-right, .menuManagement .fa.fa-angle-down', function () {
+        $('body').on('click', '.menuManagement .fa.fa-angle-right, .menuManagement .fa.fa-angle-down', function() {
             var $currentLI = $(this).parent();
             var currentUL = $currentLI.children('ul');
             $currentLI.css('background-color', 'white');
@@ -78,14 +77,14 @@ $(document).ready(function () {
                 isRight ? $currentLI.children('i.fa-angle-down').toggleClass("fa-angle-right").toggleClass("fa-angle-down") : $currentLI.children('i.fa-angle-right').toggleClass("fa-angle-right").toggleClass("fa-angle-down");
             }
         });
-        $('body').on('click', 'a.addNewButton', function () {
-            addInput('text', $(this).parent())
+        $('body').on('click', 'a.addNewButton', function() {
             addDropdownButton($(this));
+            addInput('text', $(this).parent())
             $(this).remove();
         });
-        $('body').on('click', 'a.add-child-button', function () {
-            addInput('category', $(this).parent());
+        $('body').on('click', 'a.add-child-button', function() {
             addDropdownButton($(this));
+            addInput('category', $(this).parent());
             $(this).parent().children('.saveButton').attr('class', 'save-child-button');
             $(this).parent().children('.cancelButton').attr('class', 'cancel-child-button');
             $(this).parent().children('.type')[0][0].remove();
@@ -97,34 +96,34 @@ $(document).ready(function () {
             currentElement.parent().append(elements);
         }
 
-        $('body').on('click', 'a.cancelButton', function () {
-          
+        $('body').on('click', 'a.cancelButton', function() {
+
             $(this).parent().append('<a class="addNewButton">+ ADD</a>');
             $(this).parent().children('input, a.save-child-button,a.saveButton,a.cancelButton, select, .select2').remove();
         });
-        $('body').on('click', 'a.cancel-child-button', function () {
+        $('body').on('click', 'a.cancel-child-button', function() {
             $(this).parent().append('<a class="add-child-button">+ ADD</a>');
             $(this).parent().children('input, a.save-child-button,a.cancel-child-button, select, .select2').remove();
         });
-        $('body').on('change', 'li.addNew select.type', function () {
+        $('body').on('change', 'li.addNew select.type', function() {
             addInput($(this).find(':selected').val(), $(this).parent());
         });
-        $('body').on('click', '.menuManagement .saveButton', function () {
+        $('body').on('click', '.menuManagement .saveButton', function() {
             var $parentList = $(this).parent();
             if (confirm("Save " + $parentList.children('.type').val() + " ?")) {
                 var newParent = iniatializeNewObject($parentList, currentItems.length - 1);
                 currentItems.splice(currentItems.length - 1, 0, newParent);
                 $parentList.append('<a class="addNewButton">+ ADD</a>');
                 $parentList.children('input,a.saveButton,a.cancelButton, select, .select2').remove();
-                $('<li id="'+ newParent.id +'"><i class="fas fa-grip-vertical ui-sortable-handle"></i><i class="fa fa-angle-right" style="font-size: 16px;"></i><div class="item-name"><a class="categoryDrop " target="_blank">'+ newParent.title +'</a></div><select class="type" id="64fe707b-54cf-4ecc-ab4c-82e14651007a" disabled="disabled"><option value="text">Text</option><option value="category">Category</option><option value="section">Section</option><option value="custom">Custom</option></select><a class="parent-visibility" title="Hide"><i class="fa fa-eye" style="font-size: 20px;"></i></a><a class="editButton" title="Edit"><i class="fas fa-pen" style="font-size: 20px;"></i></a><a class="deleteButton" title="Delete"><i class="fa fa-trash" style="font-size: 20px;"></i></a><a class="editSaveButton" title="Save"><i class="fa fa-check" style="font-size: 20px;"></i></a><a class="editCancelButton" title="Cancel"><i class="fa fa-times" style="font-size: 20px;"></i></a><ul style="display:none;"><li class="addNew"><a class="add-child-button">+ ADD</a></li></ul></li>').insertBefore($("#mainUL").children().last());
-                $('#'+newParent.id).children('select').val(newParent.type);
-                $('#'+newParent.id).children('i, a').css({'pointer-events': 'none'})
+                $('<li id="' + newParent.id + '"><i class="fas fa-grip-vertical ui-sortable-handle"></i><i class="fa fa-angle-right" style="font-size: 16px;"></i><div class="item-name"><a class="categoryDrop " target="_blank">' + newParent.title + '</a></div><select class="type" id="64fe707b-54cf-4ecc-ab4c-82e14651007a" disabled="disabled"><option value="text">Text</option><option value="category">Category</option><option value="section">Section</option><option value="custom">Custom</option></select><a class="parent-visibility" title="Hide"><i class="fa fa-eye" style="font-size: 20px;"></i></a><a class="editButton" title="Edit"><i class="fas fa-pen" style="font-size: 20px;"></i></a><a class="deleteButton" title="Delete"><i class="fa fa-trash" style="font-size: 20px;"></i></a><a class="editSaveButton" title="Save"><i class="fa fa-check" style="font-size: 20px;"></i></a><a class="editCancelButton" title="Cancel"><i class="fa fa-times" style="font-size: 20px;"></i></a><ul style="display:none;"><li class="addNew"><a class="add-child-button">+ ADD</a></li></ul></li>').insertBefore($("#mainUL").children().last());
+                $('#' + newParent.id).children('select').val(newParent.type);
+                $('#' + newParent.id).children('i, a').css({ 'pointer-events': 'none' })
                 document.getElementById(newParent.id).title = "Save First To Perform Actions"
                 instantiateCurrentObject();
                 updateSaveButton();
             }
         });
-        $('body').on('click', '.menuManagement .save-child-button', function () {
+        $('body').on('click', '.menuManagement .save-child-button', function() {
             var $parentItem = $(this).parent();
             if (confirm("Save " + $parentItem.children('select.type').val() + "?")) {
                 var childIndex = $parentItem.parent().parent().index();
@@ -133,15 +132,15 @@ $(document).ready(function () {
                 lastModifiedParent = $parentItem.parent().parent().attr('id');
                 $parentItem.append('<a class="add-child-button">+ ADD</a>');
                 $parentItem.children('input, a.save-child-button,a.cancel-child-button, select, .select2').remove();
-                $('<li id="' + newChild.id +'"><i class="fas fa-grip-vertical ui-sortable-handle"></i><i class="fa fa-angle-right" style="font-size: 16px;"></i><div class="item-name"><a class="categoryDrop link-zendesk" href="/hc/admin/categories/200363119/edit" target="_blank">' + newChild.title + '</a></div><select class="type" disabled="disabled"><option value="category">Category</option><option value="text">Text</option><option value="section">Section</option><option value="custom">Custom</option></select><a class="child-visibility" title="Hide"><i class="fa fa-eye" style="font-size: 20px;"></i></a><a class="edit-child-button" title="Edit"><i class="fas fa-pen" style="font-size: 20px;"></i></a><a class="delete-child-button" title="Delete"><i class="fa fa-trash" style="font-size: 20px;"></i></a><a class="edit-save-child" title="Save"><i class="fa fa-check" style="font-size: 20px;"></i></a><a class="cancel-edit-child" title="Cancel"><i class="fa fa-times" style="font-size: 20px;"></i></a></li>').insertBefore($parentItem.parent().children().last())
-                 $('#'+newChild.id).children('select').val(newChild.type);
-                $('#'+newChild.id).find('i, a').css({'pointer-events': 'none'})
+                $('<li id="' + newChild.id + '"><i class="fas fa-grip-vertical ui-sortable-handle"></i><i class="fa fa-angle-right" style="font-size: 16px;"></i><div class="item-name"><a class="categoryDrop link-zendesk" href="/hc/admin/categories/200363119/edit" target="_blank">' + newChild.title + '</a></div><select class="type" disabled="disabled"><option value="category">Category</option><option value="text">Text</option><option value="section">Section</option><option value="custom">Custom</option></select><a class="child-visibility" title="Hide"><i class="fa fa-eye" style="font-size: 20px;"></i></a><a class="edit-child-button" title="Edit"><i class="fas fa-pen" style="font-size: 20px;"></i></a><a class="delete-child-button" title="Delete"><i class="fa fa-trash" style="font-size: 20px;"></i></a><a class="edit-save-child" title="Save"><i class="fa fa-check" style="font-size: 20px;"></i></a><a class="cancel-edit-child" title="Cancel"><i class="fa fa-times" style="font-size: 20px;"></i></a></li>').insertBefore($parentItem.parent().children().last())
+                $('#' + newChild.id).children('select').val(newChild.type);
+                $('#' + newChild.id).find('i, a').css({ 'pointer-events': 'none' })
                 document.getElementById(newChild.id).title = "Save First To Perform Actions"
                 instantiateCurrentObject();
                 updateSaveButton();
             }
         });
-        $('body').on('click', '.menuManagement .editButton', function () {
+        $('body').on('click', '.menuManagement .editButton', function() {
             var $editParent = $(this).parent();
             $editParent.children('.item-name, .fa').css('display', 'none');
             $editParent.children('.type').toggleClass('currentSelect');
@@ -152,11 +151,11 @@ $(document).ready(function () {
             $editParent.children('a.editSaveButton, a.editCancelButton').css('display', 'inline');
         });
         //when type dropdown is change
-        $('body').on('change', '.menuManagement .currentSelect', function () {
+        $('body').on('change', '.menuManagement .currentSelect', function() {
             addInput($(this).find(':selected').text().toLowerCase(), $(this).parent());
         });
         //when save button is click after editing
-        $('body').on('click', '.menuManagement .editSaveButton', function () {
+        $('body').on('click', '.menuManagement .editSaveButton', function() {
             if (confirm("Edit " + $(this).parent().children('select.type').val() + " ?")) {
                 var currentItemsLength = currentItems.length;
                 var isNotFound = true;
@@ -171,10 +170,10 @@ $(document).ready(function () {
                         instantiateCurrentObject();
                         updateSaveButton();
                         cancelEdit($parent);
-                        $parent.attr({id:newObject.id, title:'Save First To Perform Actions'})
-                        $parent.children('select').attr('id',newObject.id).val(newObject.type)
+                        $parent.attr({ id: newObject.id, title: 'Save First To Perform Actions' })
+                        $parent.children('select').attr('id', newObject.id).val(newObject.type)
                         $parent.children('.item-name').children('a').text(newObject.title);
-                        $parent.children('i, a').css({"pointer-events":"none"});
+                        $parent.children('i, a').css({ "pointer-events": "none" });
                         isNotFound = false;
                     }
                 }
@@ -182,13 +181,13 @@ $(document).ready(function () {
             }
         });
         //cancel button while editing is click
-        $('body').on('click', '.menuManagement .editCancelButton', function () {
+        $('body').on('click', '.menuManagement .editCancelButton', function() {
             cancelEdit($(this).parent());
         })
 
-        function cancelEdit(list){
+        function cancelEdit(list) {
             var $currentParent = list;
-       
+
             $currentParent.children('.select2').remove();
             $currentParent.children('select.type').toggleClass('currentSelect');
             $currentParent.children('input, #sectionDropdown, #categoryDropdown').remove();
@@ -199,23 +198,23 @@ $(document).ready(function () {
             $currentParent.children('.editButton, .deleteButton').css('display', 'inline');
         }
         //delete button is clicked
-        $('body').on('click', '.menuManagement .deleteButton', function () {
-            if (confirm("Delete " + $(this).parent().children('.type').val() + "?")) {
-                var itemID = $(this).parent().attr('id');
-                var isnotRemove = true;
-                for (var i = 0; i < currentItems.length && isnotRemove; i++) {
-                    if (itemID == currentItems[i].id) {
-                        currentItems.splice(i, 1);
-                        instantiateCurrentObject();
-                        updateSaveButton();
-                        $('#mainUL #'+itemID).remove();
-                        isnotRemove = false;
+        $('body').on('click', '.menuManagement .deleteButton', function() {
+                if (confirm("Delete " + $(this).parent().children('.type').val() + "?")) {
+                    var itemID = $(this).parent().attr('id');
+                    var isnotRemove = true;
+                    for (var i = 0; i < currentItems.length && isnotRemove; i++) {
+                        if (itemID == currentItems[i].id) {
+                            currentItems.splice(i, 1);
+                            instantiateCurrentObject();
+                            updateSaveButton();
+                            $('#mainUL #' + itemID).remove();
+                            isnotRemove = false;
+                        }
                     }
                 }
-            }
-        })
-        //delete button in a child item is click
-        $('body').on('click', '.delete-child-button', function () {
+            })
+            //delete button in a child item is click
+        $('body').on('click', '.delete-child-button', function() {
             var $parentItem = $(this).parent();
             if (confirm("Delete " + $parentItem.children('select.type').val() + "?")) {
                 deleteChild($(this).parent());
@@ -226,22 +225,22 @@ $(document).ready(function () {
             }
         });
         //edit button in a child item is click
-        $('body').on('click', '.edit-child-button', function () {
+        $('body').on('click', '.edit-child-button', function() {
             var $editParent = $(this).parent();
-            var index = $editParent.parent().parent().index() -1;
-            
-            $editParent.css('height','40px');
-            currentItems[index].children[$editParent.index()-1].checkItem = true;
-            $editParent.children('label.toggle-text').css('display','inline').show();
+            var index = $editParent.parent().parent().index() - 1;
+
+            $editParent.css('height', '40px');
+            currentItems[index].children[$editParent.index() - 1].checkItem = true;
+            $editParent.children('label.toggle-text').css('display', 'inline').show();
             $editParent.children('.item-name, .fa').css('display', 'none');
             $editParent.children('.type').toggleClass('currentSelect');
-          
-            $('input[type="checkbox"]').click(function(){
-                if($(this).prop("checked") == true){
-                    currentItems[index].children[$editParent.index()-1].checkItem = true;
+
+            $('input[type="checkbox"]').click(function() {
+                if ($(this).prop("checked") == true) {
+                    currentItems[index].children[$editParent.index() - 1].checkItem = true;
                     updateSaveButton();
-                }else if($(this).prop("checked") == false){
-                    currentItems[index].children[$editParent.index()-1].checkItem = false;
+                } else if ($(this).prop("checked") == false) {
+                    currentItems[index].children[$editParent.index() - 1].checkItem = false;
                     updateSaveButton();
                 }
             });
@@ -252,15 +251,15 @@ $(document).ready(function () {
             $editParent.children('.edit-save-child, .cancel-edit-child').css('display', 'inline');
             $editParent.children('.edit-child-button, .delete-child-button').css('display', 'none');
 
-            });
+        });
 
-       
+
         //when cancel button is click while editing a child item
-        $('body').on('click', '.cancel-edit-child', function () {
+        $('body').on('click', '.cancel-edit-child', function() {
             cancelEditChild($(this).parent());
         });
         //when save button is click while editing a child item
-        $('body').on('click', '.edit-save-child', function () {
+        $('body').on('click', '.edit-save-child', function() {
             var $parentItem = $(this).parent();
             if (confirm("Edit " + $parentItem.children('select.type').val() + "?")) {
                 var childIndex = $parentItem.parent().parent().index();
@@ -271,13 +270,14 @@ $(document).ready(function () {
                 cancelEditChild($parentItem);
                 instantiateCurrentObject();
                 updateSaveButton();
-                $parentItem.attr({id:newChild.id, title:'Save First To Perform Actions'})
-                $parentItem.children('select').attr('id',newChild.id).val(newChild.type)
+                $parentItem.attr({ id: newChild.id, title: 'Save First To Perform Actions' })
+                $parentItem.children('select').attr('id', newChild.id).val(newChild.type)
                 $parentItem.children('.item-name').children('a').text(newChild.title);
-                $parentItem.children('i, a').css({"pointer-events":"none"});
+                $parentItem.children('i, a').css({ "pointer-events": "none" });
             }
         });
-        function cancelEditChild(list){
+
+        function cancelEditChild(list) {
             var $currentParent = list;
             $currentParent.children('.select2, p').remove();
             $currentParent.children('input[type="checkbox"]').toggle();
@@ -290,103 +290,103 @@ $(document).ready(function () {
             $currentParent.children('.edit-child-button, .delete-child-button').css('display', 'inline');
 
         }
-        $('body').on('click', '#save-changes', function () {
+        $('body').on('click', '#save-changes', function() {
             var numOfArrays = 7;
             doneRequest = 0;
-            $mainWrapper.css({"opacity":".4"});
-            $('main').append('<div id="loader" ><img class="image-loader" src="' + gSZMKspingreyGIFURL+'"/><label>Please wait...</label></div>')
+            $mainWrapper.css({ "opacity": ".4" });
+            $('main').append('<div id="loader" ><img class="image-loader" src="' + gSZMKspingreyGIFURL + '"/><label>Please wait...</label></div>')
             hideSections();
             showSections();
             hideArticles();
             showArticles();
-            if (JSON.stringify(menuObj) !== menuCopy){
+            if (JSON.stringify(menuObj) !== menuCopy) {
                 postData();
-                numOfArrays++;   
+                numOfArrays++;
             }
             changePosition();
             changeLOC();
             updateSectionPosition();
             instantiateCurrentObject();
             $(this).prop("disabled", "disabled");
-            setTimeout(function(){
-                (function(){
-                    if(numOfArrays >= doneRequest){
-                        $mainWrapper.css({"opacity":"1"});
+            setTimeout(function() {
+                (function() {
+                    if (numOfArrays >= doneRequest) {
+                        $mainWrapper.css({ "opacity": "1" });
                         $('#loader').remove();
-                    }else{
+                    } else {
                         setTimeout(arguments.callee, 100);
                     }
                 })()
-            },1000)
+            }, 1000)
         });
         //triggered when any of the tags is clicked.
-        $('body').on('click', '.enabled', function () {
-            $(this).attr('disabled', 'disabled');
-            var id = $(this).parent().attr('id');
-            var labelClass = $(this).attr('class').split(' ')[0];
-            var noTag = true;
-            var promisesToPost = [];
-            var promisesToDelete = [];
-            getLabels(id).done(function (data) {
-                for (var i = 0; i < data.labels.length; i++) {
-                    var name = data.labels[i].name;
-                    if (name.includes(labelClass)) {
-                        name = name.replace(/tags:/g, "");
-                        var promiseToDelete = $.ajax({
-                            url: '/api/v2/help_center/en-us/articles/' + id + '/labels/' + data.labels[i].id + '.json',
-                            type: 'DELETE'
-                        });
-                        promisesToDelete.push(promiseToDelete);
-                        var promiseToPost = $.ajax({
-                            url: '/api/v2/help_center/articles/' + id + '/labels.json',
-                            type: 'POST',
-                            data: {
-                                "label": {
-                                    "name": "DT:" + name
+        $('body').on('click', '.enabled', function() {
+                $(this).attr('disabled', 'disabled');
+                var id = $(this).parent().attr('id');
+                var labelClass = $(this).attr('class').split(' ')[0];
+                var noTag = true;
+                var promisesToPost = [];
+                var promisesToDelete = [];
+                getLabels(id).done(function(data) {
+                    for (var i = 0; i < data.labels.length; i++) {
+                        var name = data.labels[i].name;
+                        if (name.includes(labelClass)) {
+                            name = name.replace(/tags:/g, "");
+                            var promiseToDelete = $.ajax({
+                                url: '/api/v2/help_center/en-us/articles/' + id + '/labels/' + data.labels[i].id + '.json',
+                                type: 'DELETE'
+                            });
+                            promisesToDelete.push(promiseToDelete);
+                            var promiseToPost = $.ajax({
+                                url: '/api/v2/help_center/articles/' + id + '/labels.json',
+                                type: 'POST',
+                                data: {
+                                    "label": {
+                                        "name": "DT:" + name
+                                    }
                                 }
-                            }
-                        });
-                        promisesToPost.push(promiseToPost);
+                            });
+                            promisesToPost.push(promiseToPost);
+                        }
+                    }
+                    // $.when.apply(null, promisesToDelete).done(function() {
+                    //     $.when.apply(null, promisesToPost)
+                    // })
+                })
+                $(this).removeClass('enabled').addClass('disabled');
+                if ($('#products').val().toLowerCase() == labelClass.toLowerCase()) {
+                    $(this).parent().find('.article ').addClass('lineTrough');
+                    if ($(this).parent().children('.article-visibility').children('i').hasClass('fa-eye')) {
+                        $(this).parent().children('.article-visibility').children('i').toggleClass('fa-eye').toggleClass('fa-eye-slash');
                     }
                 }
-                // $.when.apply(null, promisesToDelete).done(function() {
-                //     $.when.apply(null, promisesToPost)
-                // })
+                $(this).removeAttr('disabled');
             })
-            $(this).removeClass('enabled').addClass('disabled');
-            if ($('#products').val().toLowerCase() == labelClass.toLowerCase()) {
-                $(this).parent().find('.article ').addClass('lineTrough');
-                if ($(this).parent().children('.article-visibility').children('i').hasClass('fa-eye')) {
+            //when enabled platform tag is clicked in the article.
+        $('body').on('click', '.disabled', function() {
+                $(this).attr('disabled', 'disabled');
+                var articleID = $(this).parent().attr('id');
+                var labelClass = 'DT:' + $(this).attr('class').split(' ')[0];
+                var platform = $(this).attr('class').split(' ')[0];
+                getLabels(articleID).done(function(data) {
+                    for (var i = 0; i < data.labels.length; i++) {
+                        if (data.labels[i].name == labelClass) {
+                            var name = data.labels[i].name;
+                            deleteLabel(articleID, data.labels[i].id).done(function() {
+                                createTag(articleID, platform, false);
+                            })
+                        }
+                    }
+                })
+                $(this).removeClass('disabled').addClass('enabled');
+                $(this).parent().find('.article ').removeClass('lineTrough');
+                if ($(this).parent().children('.article-visibility').children('i').hasClass('fa-eye-slash')) {
                     $(this).parent().children('.article-visibility').children('i').toggleClass('fa-eye').toggleClass('fa-eye-slash');
                 }
-            }
-            $(this).removeAttr('disabled');
-        })
-        //when enabled platform tag is clicked in the article.
-        $('body').on('click', '.disabled', function () {
-            $(this).attr('disabled', 'disabled');
-            var articleID = $(this).parent().attr('id');
-            var labelClass = 'DT:' + $(this).attr('class').split(' ')[0];
-            var platform = $(this).attr('class').split(' ')[0];
-            getLabels(articleID).done(function (data) {
-                for (var i = 0; i < data.labels.length; i++) {
-                    if (data.labels[i].name == labelClass) {
-                        var name = data.labels[i].name;
-                        deleteLabel(articleID, data.labels[i].id).done(function () {
-                            createTag(articleID, platform, false);
-                        })
-                    }
-                }
+                $(this).removeAttr('disabled');
             })
-            $(this).removeClass('disabled').addClass('enabled');
-            $(this).parent().find('.article ').removeClass('lineTrough');
-            if ($(this).parent().children('.article-visibility').children('i').hasClass('fa-eye-slash')) {
-                $(this).parent().children('.article-visibility').children('i').toggleClass('fa-eye').toggleClass('fa-eye-slash');
-            }
-            $(this).removeAttr('disabled');
-        })
-        //when eye or eye-slash icon is click
-        $("body").on("click", ".parent-visibility", function () {
+            //when eye or eye-slash icon is click
+        $("body").on("click", ".parent-visibility", function() {
             $(this).attr('disabled', 'disabled');
             var visibility = $(this).children('i.fa').hasClass('fa-eye') ? 0 : 1;
             currentItems[($(this).parent().index() - 1)].v = visibility;
@@ -396,7 +396,7 @@ $(document).ready(function () {
 
 
 
-        $("body").on("click", ".child-visibility", function () {
+        $("body").on("click", ".child-visibility", function() {
             $(this).attr('disabled', 'disabled');
             var visibility = $(this).children('i.fa').hasClass('fa-eye') ? 0 : 1;
             var parentIndex = $(this).parent().parent().parent().index() - 1;
@@ -405,43 +405,43 @@ $(document).ready(function () {
             $(this).children('i.fa').toggleClass('fa-eye-slash').toggleClass('fa-eye');
             updateSaveButton();
         });
-$("body").on("checked",".child-")
+        $("body").on("checked", ".child-")
 
 
 
 
 
         //trigger when eye or eye-slash icon in section item is click
-        $("body").on("click", ".section-visibility", function () {
-            var $currentItem = $(this);
-            var $parent = $(this).parent();
-            var itemID = $parent.attr('id');
-            $currentItem.addClass('unclickable');
-            if ($(this).children('.fa').hasClass('fa-eye')) {
-                var index = sectionsToShow.indexOf(itemID);
-                if (index > -1) {
-                    sectionsToShow.splice(index, 1);
-                } else if (!sectionsToHide.includes(itemID)) {
-                    sectionsToHide.push(itemID);
+        $("body").on("click", ".section-visibility", function() {
+                var $currentItem = $(this);
+                var $parent = $(this).parent();
+                var itemID = $parent.attr('id');
+                $currentItem.addClass('unclickable');
+                if ($(this).children('.fa').hasClass('fa-eye')) {
+                    var index = sectionsToShow.indexOf(itemID);
+                    if (index > -1) {
+                        sectionsToShow.splice(index, 1);
+                    } else if (!sectionsToHide.includes(itemID)) {
+                        sectionsToHide.push(itemID);
+                    }
+                    $parent.find('.categoryDrop').addClass('lineTrough');
+                } else {
+                    var index = sectionsToHide.indexOf(itemID);
+                    if (index > -1) {
+                        sectionsToHide.splice(index, 1);
+                    } else if (!sectionsToShow.includes(itemID)) {
+                        sectionsToShow.push(itemID);
+                    }
+                    $parent.find('.categoryDrop').removeClass('lineTrough')
                 }
-                $parent.find('.categoryDrop').addClass('lineTrough');
-            } else {
-                var index = sectionsToHide.indexOf(itemID);
-                if (index > -1) {
-                    sectionsToHide.splice(index, 1);
-                } else if (!sectionsToShow.includes(itemID)) {
-                    sectionsToShow.push(itemID);
-                }
-                $parent.find('.categoryDrop').removeClass('lineTrough')
-            }
-            $currentItem.removeClass('unclickable')
-                .children('.fa')
-                .toggleClass('fa-eye-slash')
-                .toggleClass('fa-eye');
-            updateSaveButton();
-        })
-        //trigger when eye or eye-slash icon in article item is click
-        $("body").on("click", ".article-visibility", function () {
+                $currentItem.removeClass('unclickable')
+                    .children('.fa')
+                    .toggleClass('fa-eye-slash')
+                    .toggleClass('fa-eye');
+                updateSaveButton();
+            })
+            //trigger when eye or eye-slash icon in article item is click
+        $("body").on("click", ".article-visibility", function() {
             var itemID = $(this).parent().attr('id');
             if ($(this).children('.fa').hasClass('fa-eye')) {
                 var index = articlesToShow.indexOf(itemID);
@@ -516,7 +516,7 @@ $("body").on("checked",".child-")
     }
     //append list in page
     function instantiateMenuObject() {
-        $.get('/api/v2/help_center/en-us/articles/'+siteMap).done(function (data) {
+        $.get('/api/v2/help_center/en-us/articles/' + siteMap).done(function(data) {
             menuCopy = data.article.body;
             menuObj = JSON.parse(strip_html_tags(data.article.body));
             $('article').css('display', 'none'); //remove existing data from page
@@ -552,14 +552,17 @@ $("body").on("checked",".child-")
         $mainWrapper.append('<ul class="menuManagement" id="mainUL"></ul>');
         for (var i = 0; i < currentItemsLength; i++) {
             //populating drop-downs
-            $('.menuManagement').append(constructItem(currentItems[i]));
-            if (currentItems[i].children !== undefined) {
-                var list = '';
-                for (var x = 0; x < currentItems[i].children.length; x++) {
-                    list += constructItem(currentItems[i].children[x], true);
+            if (currentItems[i] != null) {
+                $('.menuManagement').append(constructItem(currentItems[i]));
+                if (currentItems[i].children !== undefined) {
+                    var list = '';
+                    for (var x = 0; x < currentItems[i].children.length; x++) {
+                        list += constructItem(currentItems[i].children[x], true);
+                    }
+                    $('#children-' + currentItems[i].id).append('<li class="addNew"><a class="add-child-button">+ ADD</a></li>' + list).css('display', 'none');
                 }
-                $('#children-' + currentItems[i].id).append('<li class="addNew"><a class="add-child-button">+ ADD</a></li>' + list).css('display', 'none');
             }
+
         }
         $("#mainUL").nestedSortable({
             items: " > li:not(.addNew)",
@@ -568,24 +571,24 @@ $("body").on("checked",".child-")
             disableParentChange: true,
             protectRoot: true,
             handle: '.fa-grip-vertical',
-            update: function (event, ui) {
-                var index = currentItems.findIndex(function (item) {
+            update: function(event, ui) {
+                var index = currentItems.findIndex(function(item) {
                     return item.id == ui.item[0].id
                 });
                 move(currentItems, index, $('#mainUL #' + ui.item[0].id).index() - 1);
                 updateSaveButton();
             }
         });
-        $('ul.sublist').nestedSortable({
+        $('ul.sublist').nestedSortable({ //this sortable is use for categories
             disableParentChange: true,
             protectRoot: true,
             items: ' > li:not(.addNew)',
             placeholder: 'ui-state-highlight',
             listType: 'ul',
             handle: '.fa-grip-vertical',
-            update: function (event, ui) {
+            update: function(event, ui) { //when sorting is done
                 var domIndex = $('#mainUL #' + ui.item[0].id).parent().parent().index() - 1;
-                var index = currentItems[domIndex].children.findIndex(function (item) {
+                var index = currentItems[domIndex].children.findIndex(function(item) {
                     return item.id == ui.item[0].id
                 });
                 move(currentItems[domIndex].children, index, ($('#mainUL #' + ui.item[0].id).index() - 1));
@@ -594,10 +597,10 @@ $("body").on("checked",".child-")
             }
         });
 
-        $('.menuManagement .fa-grip-vertical').on('mousedown', function(e){
+        $('.menuManagement .fa-grip-vertical').on('mousedown', function(e) {
             e.preventDefault();
             $(this).addClass('mouseDown')
-        }).on('mouseup', function(){
+        }).on('mouseup', function() {
             $(this).removeClass('mouseDown');
         })
     }
@@ -642,60 +645,67 @@ $("body").on("checked",".child-")
         var linkToZendesk = item.type != 'text' ? "link-zendesk" : "";
         var visibilityHandlerClass = isChild ? "child-visibility" : "parent-visibility";
         var vTitle = 'Show';
-        var eye='fa-eye-slash';
+        var eye = 'fa-eye-slash';
         var select = '<select class="type" id="' + item.id + '">' + '<option value="text">Text</option>' + '<option value="category">Category</option>' + '<option value="section">Section</option>' + '<option value="custom">Custom</option>' + '</select>';
 
-        if(item.v){
+        if (item.v) {
             eye = 'fa-eye';
             vTitle = 'Hide';
         }
-        if(item.type == 'category'){
+        if (item.type == 'category') {
             select = '<select class="type" id="' + item.id + '"><option value="category">Category</option><option value="text">Text</option><option value="section">Section</option><option value="custom">Custom</option></select>';
-        }else if(item.type == 'section'){
+            childrenListClass = "sections";
+        } else if (item.type == 'section') {
             select = '<select class="type" id="' + item.id + '"><option value="section">Section</option><option value="text">Text</option><option value="category">Category</option><option value="custom">Custom</option></select>';
             childrenListClass = "articles";
-        }else if(item.type == 'custom'){
+        } else if (item.type == 'custom') {
             select = '<select class="type" id="' + item.id + '"><option value="custom">Custom</option><option value="text">Text</option><option value="category">Category</option><option value="section">Section</option></select>';
         }
 
-        var children = '<a class="' + visibilityHandlerClass + '" title="'+ vTitle +'"><i class="fa ' + eye + '" style="font-size: 20px;"></i></a><a class="edit-child-button" title="Edit"><i class="fas fa-pen" style="font-size: 20px;"></i></a><a class="delete-child-button" title="Delete"><i class="fa fa-trash" style="font-size: 20px;"></i></a>' + '<a class="edit-save-child" title="Save"><i class="fa fa-check" style="font-size: 20px;"></i></a>' + '<a class="cancel-edit-child" title="Cancel"><i class="fa fa-times" style="font-size: 20px;"></i></a><ul class="'+ childrenListClass +'" id="children-' + item.id + '"></ul>'
+        var children = '<a class="' + visibilityHandlerClass + '" title="' + vTitle + '"><i class="fa ' + eye + '" style="font-size: 20px;"></i></a><a class="edit-child-button" title="Edit"><i class="fas fa-pen" style="font-size: 20px;"></i></a><a class="delete-child-button" title="Delete"><i class="fa fa-trash" style="font-size: 20px;"></i></a>' + '<a class="edit-save-child" title="Save"><i class="fa fa-check" style="font-size: 20px;"></i></a>' + '<a class="cancel-edit-child" title="Cancel"><i class="fa fa-times" style="font-size: 20px;"></i></a><ul class="' + childrenListClass + '" id="children-' + item.id + '"></ul>'
 
-        if(!isChild){
-            children = '<a class="' + visibilityHandlerClass + '" title="' + vTitle +'"><i class="fa ' + eye + '" style="font-size: 20px;"></i></a><a class="editButton" title="Edit"><i class="fas fa-pen" style="font-size: 20px;"></i></a>' + '<a class="deleteButton" title="Delete"><i class="fa fa-trash" style="font-size: 20px;"></i></a>' + '<a class="editSaveButton" title="Save"><i class="fa fa-check" style="font-size: 20px;"></i></a>' + '<a class="editCancelButton" title="Cancel"><i class="fa fa-times" style="font-size: 20px;"></i></a><ul class="'+ childrenListClass +'" id="children-' + item.id + '"></ul></li>';
+        if (!isChild) {
+            children = '<a class="' + visibilityHandlerClass + '" title="' + vTitle + '"><i class="fa ' + eye + '" style="font-size: 20px;"></i></a><a class="editButton" title="Edit"><i class="fas fa-pen" style="font-size: 20px;"></i></a>' + '<a class="deleteButton" title="Delete"><i class="fa fa-trash" style="font-size: 20px;"></i></a>' + '<a class="editSaveButton" title="Save"><i class="fa fa-check" style="font-size: 20px;"></i></a>' + '<a class="editCancelButton" title="Cancel"><i class="fa fa-times" style="font-size: 20px;"></i></a><ul class="' + childrenListClass + '" id="children-' + item.id + '"></ul></li>';
         }
 
         if (item.type === "custom") {
             reference = 'href=' + item.url;
             checkBOx = '<label class="toggle-text" style="display:none;"><input label="New Tab" class="open-tab" type="checkbox" ><span>OPEN NEW TAB</span></label>'
-            if (item.checkItem){
-               var newTab = ' target="_blank"'
-               checkBOx = '<label class="toggle-text" style="display:none;"><input label="New Tab" class="open-tab" type="checkbox" checked><span >OPEN NEW TAB</span></label>'
-            }else if (item.checkItem){
+            if (item.checkItem) {
+                var newTab = ' target="_blank"'
+                checkBOx = '<label class="toggle-text" style="display:none;"><input label="New Tab" class="open-tab" type="checkbox" checked><span >OPEN NEW TAB</span></label>'
+            } else if (item.checkItem) {
                 var newTab = '>'
             }
-        }else {
+        } else {
             collapseIcon = '<i class="fa fa-angle-right" style="font-size: 16px;"></i>';
-            if(item.type != 'text'){
-                if(item.type == 'category')
+            if (item.type != 'text') {
+                if (item.type == 'category')
                     reference = 'href="/hc/admin/categories/' + item.id + '/edit"';
                 else
-                    reference = 'href="/hc/admin/'+ item.type +'s/' + item.id + '/edit"';
+                    reference = 'href="/hc/admin/' + item.type + 's/' + item.id + '/edit"';
             }
         }
 
-        return '<li id="' + item.id + '"><i class="fas fa-grip-vertical"></i>' + collapseIcon + '<div class="item-name"><a class="categoryDrop ' + linkToZendesk + '" ' + reference + newTab+ '>' + item.title + '</a></div>' + checkBOx + select + children ;
+        return '<li id="' + item.id + '"><i class="fas fa-grip-vertical"></i>' + collapseIcon + '<div class="item-name"><a class="categoryDrop ' + linkToZendesk + '" ' + reference + newTab + '>' + item.title + '</a></div>' + checkBOx + select + children;
     }
 
     //add either dropdown or text field base on selected type
     function addInput(type, parent) {
+        console.log(type);
         var localCategories = JSON.parse(storage.getItem(HelpCenter.user.email + "-allCategories" + helpCenterVer + currentLang));
         var localCategoriesLength = localCategories.length;
         $('.menuManagement .select2').remove();
         if (type == "text") {
+            var textInput = '<input type="text" placeholder="Text..">';
             $('.menuManagement #categoryDropdown').remove();
             $('.menuManagement #sectionDropdown').remove();
             $('.menuManagement input').remove();
-            $('<input type="text" placeholder="Text..">').insertAfter(parent.find('.editCancelButton'));
+            $(textInput).insertAfter(parent.find('.editCancelButton'));
+            $(textInput).insertAfter(parent.find('.cancelButton'));
+            $(textInput).insertAfter(parent.find('.cancel-child-button'));
+            $(textInput).insertAfter(parent.find('.cancel-edit-child'));
+            //parent.append('<input type="text" placeholder="Text..">');
             parent.children('input[type="text"]').val(parent.children('.item-name').children('a.categoryDrop').text());
         } else if (type === "category") {
             var categoriesDrop = '<select id="categoryDropdown">';
@@ -706,9 +716,9 @@ $("body").on("checked",".child-")
             parent.children('input').remove();
             $('.menuManagement #sectionDropdown').remove();
             $(categoriesDrop).insertAfter(parent.find('.editCancelButton'));
-            console.log('test');
-            console.log(parent);
-            console.log($('.menuManagement #categoryDropdown').val(parent.attr('id')));
+            $(categoriesDrop).insertAfter(parent.find('.cancelButton'));
+            $(categoriesDrop).insertAfter(parent.find('.cancel-child-button'));
+            $(categoriesDrop).insertAfter(parent.find('.cancel-edit-child'));
             $('.menuManagement #categoryDropdown').val(parent.attr('id')).select2({
                 placeholder: "Select a category"
             });
@@ -724,7 +734,7 @@ $("body").on("checked",".child-")
                         sectionOptions += '<option class="' + localCategories[ndx].id + '" value="' + localSections[index].id + '">' + localSections[index].name + '</option>';
                     }
                 }
-                if(sectionOptions){
+                if (sectionOptions) {
                     stringedElements += '<optgroup class="' + localCategories[ndx].id + '" label="' + localCategories[ndx].name + '">' + sectionOptions + '</optgroup>';
                 }
             }
@@ -733,17 +743,23 @@ $("body").on("checked",".child-")
             parent.children('input').remove();
             $('.menuManagement #categoryDropdown').remove();
             $(stringedElements).insertAfter(parent.find('.editCancelButton'));
-            console.log(parent);
-            console.log($('.menuManagement #categoryDropdown').val(parent.attr('id')));
+            $(stringedElements).insertAfter(parent.find('.cancelButton'));
+            $(stringedElements).insertAfter(parent.find('.cancel-child-button'));
+            $(stringedElements).insertAfter(parent.find('.cancel-edit-child'));
             $('.menuManagement #sectionDropdown').val(parent.attr('id')).select2({
                 placeholder: "Select a section"
             });
             $('#sectionDropdown').children('option').wrap('<span/>')
         } else if (type === "custom") {
+            var customInput = '<input type="text" placeholder="Text..."><input type="url" placeholder="URL...">';
             parent.children('input[type="text"]').remove();
             $('.menuManagement #categoryDropdown').remove();
             $('.menuManagement #sectionDropdown').remove();
-            $('<input type="text" placeholder="Text..."><input type="url" placeholder="URL...">').insertAfter(parent.find('.editCancelButton'));
+            $(customInput).insertAfter(parent.find('.editCancelButton'));
+            $(customInput).insertAfter(parent.find('.cancelButton'));
+            $(customInput).insertAfter(parent.find('.cancel-child-button'));
+            $(customInput).insertAfter(parent.find('.cancel-edit-child'));
+            //parent.append('<input type="text" placeholder="Text..."><input type="url" placeholder="URL...">');
             parent.children('input[type="text"]').val(parent.find('.categoryDrop').text());
             parent.children('input[type="url"]').val(parent.find('.categoryDrop').attr('href'));
         }
@@ -768,8 +784,8 @@ $("body").on("checked",".child-")
                     "body": JSON.stringify(menuObj)
                 }
             })
-          
-        }).done(function () {
+
+        }).done(function() {
             doneRequest++;
             updateItems();
             instantiateMenuObject();
@@ -820,21 +836,27 @@ $("body").on("checked",".child-")
         parentDOM.children('i.fa-angle-down, i.fa-angle-right, .categoryDrop').css({
             'cursor': 'wait'
         })
-        $.get("/api/v2/help_center/en-us/categories/" + categoryID + "/sections").done(function (response) {
-            var sections = response.sections;
-            sections.forEach(function (section) {
+        $.get("/api/v2/help_center/en-us/categories/" + categoryID + "/sections").done(function(response) {
+            sections = response.sections;
+            sections.forEach(function(section) {
                 stringDOM += '<li id="' + section.id + '"><i class="fas fa-grip-vertical"></i><i class="fa fa-angle-right" style="font-size: 16px;"></i><div class="item-name"><a class="categoryDrop link-zendesk" href="/hc/admin/sections/' + section.id + '/edit" target="_blank">' + section.name + '</a></div><select class="type" id="select-' + section.id + '">' + '<option value="section">Section</option>' + '<option value="text">Text</option>' + '<option value="category">Category</option>' + '<option value="custom">Custom</option></select>' + '</li>';
             })
             parentDOM.children('ul').append(stringDOM);
             for (var ndx = 0; ndx < sections.length; ndx++) {
-                (function (x) {
+                (function(x) {
                     var eye = "fa-eye-slash";
                     var hidden = true;
                     var title = "Show To All Shared Platform";
-                    $.get('/api/v2/help_center/en-us/sections/' + sections[x].id + '/articles').done(function (data) {
+                    $.get('/api/v2/help_center/en-us/sections/' + sections[x].id + '/articles').done(function(data) {
                         var platform = getCurrentPlatform($("#products").val());
-                        if (data.count > 0 && !sections[x].description.includes("hidden")) {
-                            data.articles.forEach(function (article) {
+                        var validDescription = true;
+                        if (sections[x].description) {
+                            if (sections[x].description.includes("hidden")) {
+                                validDescription = false;
+                            }
+                        }
+                        if (data.count > 0 && validDescription) {
+                            data.articles.forEach(function(article) {
                                 var labelList = article.label_names;
                                 var hasLabel = labelList.includes(platform);
                                 if (platform == "supportKb" || !labelList.length) {
@@ -865,7 +887,6 @@ $("body").on("checked",".child-")
                     })
                 })(ndx)
             }
-
             parentDOM.children('ul').nestedSortable({
                 disableParentChange: true,
                 protectRoot: true,
@@ -873,9 +894,9 @@ $("body").on("checked",".child-")
                 placeholder: 'ui-state-highlight',
                 listType: 'ul',
                 handle: '.fa-grip-vertical',
-                relocate: function (event, ui) {
+                relocate: function(event, ui) {
                     var domIndex = $('#mainUL #' + ui.item[0].id).index();
-                    var index = sections.findIndex(function (item) {
+                    var index = sections.findIndex(function(item) {
                         return item.id == ui.item[0].id
                     });
                     if (isFirstDrag) {
@@ -905,7 +926,6 @@ $("body").on("checked",".child-")
                     }
                     move(sections, index, domIndex);
                     updateSaveButton();
-                    sectionUpdate = true;
                 }
             })
         })
@@ -926,7 +946,7 @@ $("body").on("checked",".child-")
                 });
                 promisesToUpdate.push(requestToUpdate);
             }
-            $.when.apply(null, promisesToUpdate).done(function () {
+            $.when.apply(null, promisesToUpdate).done(function() {
                 $('#save-changes').attr('disabled', 'disabled');
                 doneRequest++;
             });
@@ -948,7 +968,7 @@ $("body").on("checked",".child-")
         parentELement.children('i.fa-angle-down, i.fa-angle-right, .categoryDrop').css({
             'cursor': 'wait'
         })
-        if(!parentELement.children('ul.articles').length){
+        if (!parentELement.children('ul.articles').length) {
             parentELement.append('<ul class="articles"></ul>')
         }
         articles = [];
@@ -956,12 +976,12 @@ $("body").on("checked",".child-")
 
         function getArticle() {
             var notMoved = true;
-            $.get(url).done(function (data) {
+            $.get(url).done(function(data) {
                 url = data.next_page;
                 for (var i = 0; i < data.articles.length; i++) {
                     if (!data.articles[i].draft) {
                         articles.push(data.articles[i].id);
-                        var labelList = data.articles[i].label_names.map(function (data) {
+                        var labelList = data.articles[i].label_names.map(function(data) {
                             return data.toUpperCase();
                         })
                         var eye = "fa-eye";
@@ -976,15 +996,17 @@ $("body").on("checked",".child-")
                                 lineTrough = "lineTrough";
                             }
                         }
-                        var stringifiedElements = '<li id="' + data.articles[i].id + '" class="menu-admin-article"><i class="fas fa-grip-vertical"></i></i><div class="item-name"><a class="article ' + lineTrough + ' link-zendesk" href="'+ zendeskEditorURL +'/articles/' + data.articles[i].id + '" target="_blank">' + data.articles[i].name + '</a></div>' + articlePlatfromTag + '<select class="type" disabled><option value="article">Article</option><option value="text">Text</option><option value="category">Category</option><option value="section">Section</option><option value="custom">Custom</option></select><a class="article-visibility" title="' + title + '"><i class="fa ' + eye + '" style="font-size: 20px;"></i></a><ul style="display:none;"></ul></li>';
+                        var stringifiedElements = '<li id="' + data.articles[i].id + '" class="menu-admin-article"><i class="fas fa-grip-vertical"></i></i><div class="item-name"><a class="article ' + lineTrough + ' link-zendesk" href="' + zendeskEditorURL + '/articles/' + data.articles[i].id + '" target="_blank">' + data.articles[i].name + '</a></div>' + articlePlatfromTag + '<select class="type" disabled><option value="article">Article</option><option value="text">Text</option><option value="category">Category</option><option value="section">Section</option><option value="custom">Custom</option></select><a class="article-visibility" title="' + title + '"><i class="fa ' + eye + '" style="font-size: 20px;"></i></a><ul style="display:none;"></ul></li>';
                         if (!labelList.includes('LOC_1') && !labelList.includes('LOC_2') && !labelList.includes('LOC_3') && !labelList.includes('LOC_4') && !labelList.includes('LOC_5')) {
                             parentELement.children('ul').addClass('LOC_1').append(stringifiedElements);
                             loc1 = data.articles[i].id, loc2 = 0, loc3 = 0, loc4 = 0;
                         } else if (labelList.includes('LOC_2')) {
                             loc2 = data.articles[i].id, loc3 = 0, loc4 = 0;
                             $('#mainUL #' + loc1).children('ul').addClass('LOC_2').append(stringifiedElements);
-                            $('#mainUL #' + loc1).children('i.fa.fa-angle-right').length === 0 && ($('<i class="fa fa-angle-right" style="font-size: 16px;"></i>').insertAfter($('#mainUL #' + loc1).children('i.fa.fa-grip-vertical')),
-                                $('#mainUL #' + loc1).children('a.article').css('padding-left', '0px'));
+                            if ($('#mainUL #' + loc1).children('i.fa-angle-right').length === 0 && $('#mainUL #' + loc1).children('i.fa-angle-down').length === 0) {
+                                $('<i class="fa fa-angle-right" style="font-size: 16px;"></i>').insertAfter($('#mainUL #' + loc1).children('i.fa-grip-vertical')),
+                                    $('#mainUL #' + loc1).children('a.article').css('padding-left', '0px');
+                            }
                         } else if (labelList.includes('LOC_3')) {
                             loc3 = data.articles[i].id, loc4 = 0;
                             var loc3ParentID = loc2;
@@ -992,8 +1014,10 @@ $("body").on("checked",".child-")
                                 loc3ParentID = loc1;
                             }
                             $('#mainUL #' + loc3ParentID).children('ul').addClass('LOC_3').append(stringifiedElements);
-                            $('#mainUL #' + loc3ParentID).children('i.fa.fa-angle-right').length === 0 && ($('<i class="fa fa-angle-right" style="font-size: 16px;"></i>').insertAfter($('#mainUL #' + loc3ParentID).children('i.fa.fa-grip-vertical')),
-                                $('#mainUL #' + loc3ParentID).children('a.article').css('padding-left', '0px'));
+                            if ($('#mainUL #' + loc3ParentID).children('i.fa-angle-right').length === 0 && $('#mainUL #' + loc1).children('i.fa-angle-down').length === 0) {
+                                $('<i class="fa fa-angle-right" style="font-size: 16px;"></i>').insertAfter($('#mainUL #' + loc3ParentID).children('i.fa-grip-vertical')),
+                                    $('#mainUL #' + loc3ParentID).children('a.article').css('padding-left', '0px');
+                            }
                         } else if (labelList.includes('LOC_4')) {
                             var loc4ParentID = loc3;
                             if (!loc4ParentID) {
@@ -1003,8 +1027,10 @@ $("body").on("checked",".child-")
                                 loc4ParentID = loc1;
                             }
                             $('#mainUL #' + loc4ParentID).children('ul').addClass('LOC_4').append(stringifiedElements);
-                            $('#mainUL #' + loc4ParentID).children('i.fa.fa-angle-right').length === 0 && ($('<i class="fa fa-angle-right" style="font-size: 16px;"></i>').insertAfter($('#mainUL #' + loc4ParentID).children('i.fa.fa-grip-vertical')),
-                                $('#mainUL #' + loc4ParentID).children('a.article').css('padding-left', '0px'));
+                            if ($('#mainUL #' + loc4ParentID).children('i.fa-angle-right').length === 0 && $('#mainUL #' + loc1).children('i.fa-angle-down').length === 0) {
+                                $('<i class="fa fa-angle-right" style="font-size: 16px;"></i>').insertAfter($('#mainUL #' + loc4ParentID).children('i.fa-grip-vertical')),
+                                    $('#mainUL #' + loc4ParentID).children('a.article').css('padding-left', '0px')
+                            };
                         }
                     }
                 }
@@ -1023,19 +1049,19 @@ $("body").on("checked",".child-")
                         opacity: 1,
                         isTree: true,
                         handle: '.fa-grip-vertical',
-                        isAllowed: function (placeholder, placeholderParent, currentItem) {
+                        isAllowed: function(placeholder, placeholderParent, currentItem) {
                             if (placeholder.parents('ul.articles').length) {
                                 return true;
                             } else {
                                 return false;
                             }
                         },
-                        start: function (event, ui) {
+                        start: function(event, ui) {
                             var startID = ui.item[0].id;
                             oldLOC = getNewLOC(startID);
                         },
                         //this function is trigger after menu item is drag into another place
-                        relocate: function (event, ui) {
+                        relocate: function(event, ui) {
                             var id = ui.item[0].id,
                                 moveArtOldIndex = getIndex(id),
                                 moveArtNewIndex = getNewIndex(id);
@@ -1164,7 +1190,7 @@ $("body").on("checked",".child-")
 
     //use to generate a unique id for text item only
     function uuidv4() {
-        return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, function (a) {
+        return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, function(a) {
             return (a ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> a / 4).toString(16);
         });
     }
@@ -1205,7 +1231,7 @@ $("body").on("checked",".child-")
         oldIndex < newIndex ? (index = oldIndex, length = newIndex) : (index = newIndex, length = oldIndex);
         if (length != index) {
             for (; index <= length; index++) {
-                (function (x) {
+                (function(x) {
                     var postRequest = $.ajax({
                         url: '/api/v2/help_center/articles/' + articles[x] + '.json',
                         type: 'PUT',
@@ -1220,7 +1246,7 @@ $("body").on("checked",".child-")
                     promises.push(postRequest);
                 })(index)
             }
-            $.when.apply(null, promises).done(function(){
+            $.when.apply(null, promises).done(function() {
                 doneRequest++;
             })
         }
@@ -1230,9 +1256,9 @@ $("body").on("checked",".child-")
     function addLabels() {
         var numArticles = articlesChangeLOC.length;
         for (var i = 0; i < numArticles; i++) {
-            (function (index) {
+            (function(index) {
                 if (undefined === articlesChangeLOC[index].labels) {
-                    $.get('/api/v2/help_center/articles/' + articlesChangeLOC[index].id + '/labels.json').done(function (data) {
+                    $.get('/api/v2/help_center/articles/' + articlesChangeLOC[index].id + '/labels.json').done(function(data) {
                         articlesChangeLOC[index].labels = data.labels;
                     })
                 }
@@ -1246,11 +1272,11 @@ $("body").on("checked",".child-")
             promisesToDelete = [];
         var numArticles = articlesChangeLOC.length;
         for (var i = 0; i < numArticles; i++) {
-            (function (index) {
+            (function(index) {
                 if (articlesChangeLOC[index].labels != undefined) {
                     var labels = articlesChangeLOC[index].labels;
                     for (var n = 0; n < labels.length; n++) {
-                        (function (innerNdx) {
+                        (function(innerNdx) {
                             if (labels[innerNdx].name.includes('LOC')) {
                                 var requestToDelete = $.ajax({
                                     url: '/api/v2/help_center/articles/' + articlesChangeLOC[index].id + '/labels/' + labels[innerNdx].id + '.json',
@@ -1275,8 +1301,8 @@ $("body").on("checked",".child-")
                 }
             })(i)
         }
-        $.when.apply(null, promisesToDelete).done(function () {
-            $.when.apply(null, promises).done(function () {
+        $.when.apply(null, promisesToDelete).done(function() {
+            $.when.apply(null, promises).done(function() {
                 $('#save-changes').attr('disabled', 'disabled');
                 doneRequest++;
             })
@@ -1297,19 +1323,19 @@ $("body").on("checked",".child-")
     }
 
     function showArticles() {
-        if(!articlesToShow.length)doneRequest++;
+        if (!articlesToShow.length) doneRequest++;
         for (var i = 0, len = articlesToShow.length; i < len; i++) {
-            (function (ndx) {
-                $.get('/api/v2/help_center/articles/' + articlesToShow[ndx] + '/labels.json').done(function (data) {
+            (function(ndx) {
+                $.get('/api/v2/help_center/articles/' + articlesToShow[ndx] + '/labels.json').done(function(data) {
                     var articleLabels = data.labels;
                     for (var x = 0, labelLen = articleLabels.length; x < labelLen; x++) {
-                        (function (index) {
+                        (function(index) {
                             if (articleLabels[x].name == "hidden") {
                                 $.ajax({
                                     url: '/api/v2/help_center/en-us/articles/' + articlesToShow[ndx] + '/labels/' + articleLabels[x].id + '.json',
                                     type: 'DELETE'
-                                }).done(function(){
-                                    if(ndx+1 >= articlesToShow.length){
+                                }).done(function() {
+                                    if (ndx + 1 >= articlesToShow.length) {
                                         doneRequest++;
                                     }
                                 })
@@ -1322,8 +1348,8 @@ $("body").on("checked",".child-")
     }
 
     function hideArticles() {
-        if(!articlesToHide.length)doneRequest++;
-        articlesToHide.forEach(function (id,index) {
+        if (!articlesToHide.length) doneRequest++;
+        articlesToHide.forEach(function(id, index) {
             $.ajax({
                 url: '/api/v2/help_center/articles/' + id + '/labels.json',
                 type: 'POST',
@@ -1332,19 +1358,19 @@ $("body").on("checked",".child-")
                         "name": "hidden"
                     }
                 }
-            }).done(function(){
-                        if(index+1 >= articlesToHide.length){
-                            doneRequest++
-                        }
-                    })
+            }).done(function() {
+                if (index + 1 >= articlesToHide.length) {
+                    doneRequest++
+                }
+            })
         })
     }
 
     function showSections() {
-        if(!sectionsToShow.length)doneRequest++;
+        if (!sectionsToShow.length) doneRequest++;
         for (var i = 0, len = sectionsToShow.length; i < len; i++) {
-            (function (index) {
-                $.get('/api/v2/help_center/sections/' + sectionsToShow[index]).done(function (section) {
+            (function(index) {
+                $.get('/api/v2/help_center/sections/' + sectionsToShow[index]).done(function(section) {
                     var description = section.section.description.replace(/hidden/g, "");
                     description = description.trim();
                     $.ajax({
@@ -1355,8 +1381,8 @@ $("body").on("checked",".child-")
                                 "description": description
                             }
                         }
-                    }).done(function(){
-                        if(index+1 >= sectionsToShow.length){
+                    }).done(function() {
+                        if (index + 1 >= sectionsToShow.length) {
                             doneRequest++
                         }
                     })
@@ -1366,10 +1392,10 @@ $("body").on("checked",".child-")
     }
 
     function hideSections() {
-        if(!sectionsToHide.length)doneRequest++;
+        if (!sectionsToHide.length) doneRequest++;
         for (var i = 0, len = sectionsToHide.length; i < len; i++) {
-            (function (index) {
-                $.get('/api/v2/help_center/sections/' + sectionsToHide[index]).done(function (section) {
+            (function(index) {
+                $.get('/api/v2/help_center/sections/' + sectionsToHide[index]).done(function(section) {
                     var description = section.section.description == "" ? "hidden" : section.section.description + " hidden";
                     $.ajax({
                         url: "/api/v2/help_center/sections/" + sectionsToHide[index],
@@ -1379,8 +1405,8 @@ $("body").on("checked",".child-")
                                 "description": description
                             }
                         }
-                    }).done(function(){
-                        if(index+1 >= sectionsToHide.length){
+                    }).done(function() {
+                        if (index + 1 >= sectionsToHide.length) {
                             doneRequest++
                         }
                     })

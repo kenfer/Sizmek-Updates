@@ -4,28 +4,37 @@
 <script>
 gSZMKeditorHostedCssURL = "{{asset 'editorHostedCSS.css'}}";
 gSZMKspingreyGIFURL = "{{asset 'spingrey.gif'}}";
+gSZMKloaderGIFURL = "{{asset 'szmk-loader.gif'}}";
+assetsSubmitSuccess = "{{asset 'submit-success.png'}}";
+assetsSubmitFail = "{{asset 'submit-fail.png'}}";
+assetsBootstrap = "{{asset 'bootstrap.min.js'}}";
+assetsLightbox = "{{asset 'lightbox.min.css'}}"; 
 
 <!-- MessageBoard -->
-messageBoardCategory = 201680143;
-messageBoardSAS = 202580163;
-messageBoardMDX = 360000037612;
-messageBoardDSP = 360000037572;
-messageBoardDMP = 360000041291;
-messageBoardSiteOP = 360002974512;
-messageBoardInternal = 360002990152;
-globalNotification_ID = 1627768706;
-globalSupport_ID = 357520165;
-
+messageBoardCategory = 360001269192;
+messageBoardSAS = 360003111671;
+messageBoardMDX = 360003105452;
+messageBoardDSP = 360003105432;
+messageBoardDMP = 360003105412;
+messageBoardSiteOP = 360003105392;
+messageBoardInternal = 360003111631;
+globalNotification_ID = 373827078451;
+globalSupport_ID = 373939747332;
+gSZMKSignedInSegmentID = 530343;
+gSZMKAgentManagerSegmentID = 530323;
+  
 <!-- Menu Management -->
-menuManagementPage = 360007566192;
-siteMap = 360017844052;
-
+menuManagementPage = 360020482392;
+siteMap = 360020751631;
+zendeskEditorURL = "https://sizmek1410775176.zendesk.com/knowledge";
 <!-- Hashtag Management -->
-hashtagManagementID = 360004850231;
+hashtagManagementID = 360020993412;
 
 <!-- Master-->
-unSupportedBrowser = 206321873;
-mainURL = "https://support.sizmek.com/hc/en-us";
+unSupportedBrowser = 360020483072;
+mainURL = "https://sizmek1410775176.zendesk.com/hc/";
+gSZMKHelpTopicCatID = 360001400611;
+
   
 <!-- This function is used to remove <p></p> in Site Map body-->
   function strip_html_tags(str) {
@@ -76,7 +85,10 @@ ga('create', 'UA-53293083-1', 'auto');
 <!--<script type="text/javascript" src='/hc/theme_assets/539845/200023575/arrayPolyfill.js'></script>-->
 <script type="text/javascript" src='{{asset 'base64.js'}}'></script>
 <script type="text/javascript" src="{{asset 'jquery.fancybox.js'}}"></script>
-<script type="text/javascript" src="{{asset 'zaf_sdk.js'}}"></script>
+  
+<!--script type="text/javascript" src="{{asset 'zaf_sdk.js'}}"></script-->
+<script type="text/javascript" src="https://static.zdassets.com/zendesk_app_framework_sdk/2.0/zaf_sdk.min.js"></script>
+
 <script type="text/javascript" src="{{asset 'jquery-ui.min.js'}}"></script>
 <script type="text/javascript" src="{{asset 'bootstrap.min.js'}}"></script>
 
@@ -89,7 +101,9 @@ ga('create', 'UA-53293083-1', 'auto');
 <script src="{{asset 'paligo-stickymenu.js'}}"></script>
 <script src="{{asset 'paligo-zd-glossary-3.js'}}"></script>
 <script src="{{asset 'paligo-zd.js'}}"></script>
-<link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet"/>
+  
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css" integrity="sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/" crossorigin="anonymous">
+<!--<link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet"/>-->
 <link href="{{asset 'lightbox.min.css'}}" rel="stylesheet"/>
 <link href="{{asset 'paligo-zd.css'}}" rel="stylesheet" type="text/css" />
 <link href="{{asset 'paligo-stickymenu.css'}}" rel="stylesheet" type="text/css" />
@@ -127,6 +141,6 @@ ga('create', 'UA-53293083-1', 'auto');
 
 <script type="text/javascript"  src="{{asset 'etc.js'}}?v19"></script>
 <script type="text/javascript"  src="{{asset 'article-verification.js'}}?v3"></script>
-<script type="text/javascript"	src="{{asset 'hotkey.js'}}"></script>
+<script type="text/javascript"  src="{{asset 'hotkey.js'}}"></script>
 <script type="text/javascript"  src="{{asset 'hashtags.js'}}"></script>
 <script type="text/javascript"  src="{{asset 'menuManagement.js'}}"></script>

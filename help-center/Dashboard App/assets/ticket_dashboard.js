@@ -95,7 +95,7 @@ function activeTab() { //1. check if content table created. if not go 2 & 3; 2. 
         pane = $('#' + tab);
 
     if (pane.find(dataTable).length === 0) {
-        $('.nav-tabs li').addClass("disabled"); //before loaded data, disble the tabs to avoid quickly click mess data/table 
+        $('.nav-tabs li').addClass("disabled"); //before loaded data, disble the tabs to avoid quickly click mess data/table
         $('.tab-content').append('<img class="loading" src="spinner.gif" style="position:fixed;top:40%;left:40%" />');
         if (tab.indexOf("qr_") != -1)
             pane.append(tickets_dashboard.tabel_tmp_RV)
@@ -130,7 +130,7 @@ function activeTab() { //1. check if content table created. if not go 2 & 3; 2. 
                 else {
                     var url = "/api/v2/tickets/show_many.json?ids=" + sMany + '&include=groups,users';
                     DoRequest(url).then(function(data) {
-                        //showGrid(data) 
+                        //showGrid(data)
                         var _count = 0;
                         $.each(data.results, function(i, tkt) {
                             checkLastStatusChage(tkt)
@@ -281,7 +281,7 @@ function calcTime(city, offset) {
     d = new Date();
 
     // convert to msec
-    // add local time zone offset 
+    // add local time zone offset
     // get UTC time in msec
     utc = d.getTime() + (d.getTimezoneOffset() * 60000);
 
@@ -671,7 +671,7 @@ function delCCsTkts(sMany) {
 
 function addCCsTkts(ids) {
     var me = [],
-        ticketJSON, url = '/api/v2/tickets/update_many.json?ids=' + ids; // removeCC ? '/api/v2/tickets/'+tkt+'.json': 
+        ticketJSON, url = '/api/v2/tickets/update_many.json?ids=' + ids; // removeCC ? '/api/v2/tickets/'+tkt+'.json':
     me.push(tickets_dashboard.currentUser.id);
     ticketJSON = {
         "ticket": {
@@ -1159,7 +1159,7 @@ function initQuery() {
             case "handoff": // need tier handoff, dont need specific person
                 obj.query = '"hand+off+summary"+'
                 break;
-            case "qualityreview": //quality review   new process ; checkbox show reviewed,  
+            case "qualityreview": //quality review   new process ; checkbox show reviewed,
                 if (isTicketExpired() || isTicketEmpty()) {
                     do_QB_DBConnect();
                 };
@@ -1532,6 +1532,7 @@ var year = dateObj.getUTCFullYear();
 var caldate = "" + day + month + year;
 $("#cal").attr("href", "https://my.setmore.com/calendar#monthly/rea191ef6ffe015deb9f22929568147dc343bdc98/" + caldate);
 
+/*
 var ctx = document.getElementById("myChart");
 var ctx2 = document.getElementById("myChart2");
 
@@ -1645,3 +1646,4 @@ var myChart2 = new Chart(ctx2, {
         }
     }
 });
+*/

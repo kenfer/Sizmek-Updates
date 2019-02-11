@@ -1,6 +1,6 @@
 // ARTICLE VERIFICATION
 // AUTHOR: Yves Denzel libunao
-// ver 1.11
+// ver 1.12
 $(document).ready(function() {
     var currentUser = HelpCenter.user.role;
     var storage = window["localStorage"];
@@ -731,7 +731,7 @@ $(document).ready(function() {
                         type: 'DELETE'
                     });
                     setTimeout(function() {
-                        window.location.href = "https://support.sizmek.com/hc/en-us/categories/201680143-Message-Board";
+                        window.location.href = "/hc/en-us/categories/"+ messageBoardCategory +"";
                     }, 500)
                 }
             });
@@ -859,7 +859,10 @@ $(document).ready(function() {
                     } else {
                         $('.article-header h1').css('color', 'rgb(52, 152, 219)');
                     }
-
+                    if(bodyArticle.indexOf(':<br><br>') > -1){
+                        articleStatus = bodyArticle.split(getDelim(':<br><br>'), 1);
+                        bodyArticle = bodyArticle.substr(bodyArticle.indexOf(':<br><br>') + 1);
+                    }
                     $('.incident-wrapper').append($('.main-column'));
                     $('<div class="incident-list-cont show"></div>').insertAfter(".article-info");
                     $('.incident-list-cont').append("<div class='incident-list'></div>");
@@ -867,12 +870,11 @@ $(document).ready(function() {
                     $('.incident-list-item').append("<div class='incident-item-body'><h5>" + articleStatus + "</h5></div><div class='edit_update'><a>Edit</a></div>");
                     $($('.article-body.markdown')).insertBefore('.edit_update');
                     $('.article-body.markdown').append('<br><small class="small">' + creationDate.toDateString() + ' ' + creationDate.toLocaleTimeString() + '</small><span class="hide span-body">' + bodyArticle + '</span>');
-                    $('.incident-list-cont.show').append('<a id="back-incident-list" class="plain-button" href="https://support.sizmek.com/hc/en-us/categories/201680143-Message-Board"><br><span style="font-family:arial">←</span> Incidents</a></div></div>');
+                    $('.incident-list-cont.show').append('<a id="back-incident-list" class="plain-button" href="/hc/en-us/categories/'+ messageBoardCategory +'"><br><span style="font-family:arial">←</span> Incidents</a></div></div>');
 
                     if ($('.incident-list').html('<div class="incident-list-item"><div class="incident-item-body"><h5>' + articleStatus+'</h5></div><div class="article-body markdown">' + bodyArticle + '<br><small class="small">Posted on ' + creationDate.toDateString() + " " + creationDate.toLocaleTimeString() + '</small><span class="hide">' + bodyArticle + '<span></div></div>')) {
                         $.get('/api/v2/help_center/articles/' + currArticleID + '/comments.json', function(data) {
                             for (var x = data.comments.length - 1; x >= 0; x--) {
-                                var updateId = data.comments[x].id,
                                     date = data.comments[x].updated_at,
                                     dateCreated = new Date(date),
                                     body = data.comments[x].body,

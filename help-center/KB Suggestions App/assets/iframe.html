@@ -2,7 +2,8 @@
 <html class="kbapp"  style="overflow:hidden">
 
 <head>
-    <link rel="stylesheet" href="https://assets.zendesk.com/apps/sdk-assets/css/1/zendesk_garden.css" type="text/css">
+    <!--link rel="stylesheet" href="https://assets.zendesk.com/apps/sdk-assets/css/1/zendesk_garden.css" type="text/css"-->
+    <link rel="stylesheet" href="zendesk_garden.css" type="text/css">
     <link rel="stylesheet" href="styles.css" type="text/css">
     <!--script type="text/javascript" src="scripts.js"></script-->
 </head>
@@ -209,7 +210,7 @@
             getCurrentUser().then(function(currentUser) {
                 thisUser = currentUser;
                 //client.get('ticket.customField:fieldName')
-                //581785 - agent, 
+                //581785 - agent,
 
                 if ((currentUser.role == "agent" || currentUser.role == "admin" || currentUser.role == 581785 || currentUser.role == 975295 || currentUser.role == 961279 || currentUser.role == 782345 || currentUser.role == 581795 || currentUser.role == 560549) && thisTicket.form.id == 16155) {
                     getTicketCustomField('custom_field_22155349').then(function(val) {
@@ -295,8 +296,8 @@
                 });
                 switchTo('no_entries')
             } else {
-                
-                var height = 132 +20*(data.entries.length) 
+
+                var height = 132 +20*(data.entries.length)
                 client.invoke('resize', {
                     width: '100%',
                     height: height+'px'
@@ -473,7 +474,7 @@
                             if(reviewModalClient.reviewModalReady){
                                 clearInterval(reviewModalInterval);
                                 reviewModalClient.trigger('modalReady_call', commentArr);
-                            }    
+                            }
                         },50)
                         //$modal.html(render_Review_Modal(commentArr));
                     });
@@ -481,9 +482,6 @@
             }, 100);
 
         }
-
-		var viewportW = $(top).width();
-		var viewportH = $(top).height();
 
         function renderModal() {
             client.invoke('instances.create', {
@@ -517,7 +515,7 @@
                 HCModalClient.invoke('resize', {
                     width: "80vw", //'1040px'
                     height: "80vh" //'600px'
-                }) 
+                })
                 HCModalClient.on('iframeLoaded', iframeLoadedHandler);
                 HCModalClient.on('showIframe', showIframeHandler)
                 HCModalClient.on('reviewEditorReady', sendIframeVersions)

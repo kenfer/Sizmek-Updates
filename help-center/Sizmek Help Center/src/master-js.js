@@ -23,11 +23,23 @@ var kbTags = ["topic", "article", "issue"];
 
 //uffa var phpURL = "https://uffa.sizmek.com/uffa/ProxyAPI.php?";
 
-$(function() {
+//scroll to top functionality in TOC
+function scrollUp() {
 
+    $("html, body").animate({
+        scrollTop: 0
+    }, '500');
+
+    $("#backToTop").animate({
+        opacity: 0,
+        height: "0px"
+    }, 100);
+}
+
+$(function() {
     //load menu site-map article - we should move HC version label to this article for single request
-    $.get('/api/v2/help_center/en-us/articles/'+ siteMap).done(function(data) {
-        var menuObject = JSON.parse(strip_html_tags(data.article.body));
+    $.get('/api/v2/help_center/en-us/articles/' + siteMap).done(function(data) {
+        var menuObject = JSON.parse(data.article.body);
 
 
         //check string exist in current URL
@@ -36,14 +48,12 @@ $(function() {
             else return false;
         }
 
-
         //load current helpcenter cache version number
-        $.getJSON("/api/v2/help_center/" + currentLang + "/articles/" + unSupportedBrowser +".json").done(function(gate) {
-
+        $.getJSON("/api/v2/help_center/" + currentLang + "/articles/" + unSupportedBrowser).done(function(gate) {
             if (document.all && !document.addEventListener) {
 
                 //show unsupported browser message for IE 8 or older versions
-                if (window.location.href.indexOf("206321873") == -1) window.location.replace("/hc/" + currentLang + "/articles/206321873");
+                if (window.location.href.indexOf(unSupportedBrowser) == -1) window.location.replace("/hc/" + currentLang + "/articles/" + unSupportedBrowser);
                 else {
                     $(".user-nav, .sub-nav, .search, .in-this-articles, .article-subscribe, .notification, .article-footer, .submit-a-request, .article-comments, .breadcrumbs, .hamburger").hide();
                     $("body").css("font-family", "arial");
@@ -79,19 +89,6 @@ $(function() {
             //flag current cache version as visited
             storage.setItem(HelpCenter.user.email + helpCenterVer + currentLang, 1);
 
-            //scroll to top functionality in TOC
-            function scrollUp() {
-
-                $("html, body").animate({
-                    scrollTop: 0
-                }, '500');
-
-                $("#backToTop").animate({
-                    opacity: 0,
-                    height: "0px"
-                }, 100);
-            }
-
             //return URL parameters
             var getUrlParameter = function getUrlParameter(sParam) {
                 var sPageURL = decodeURIComponent(window.location.search.substring(1)),
@@ -109,14 +106,14 @@ $(function() {
             };
 
             //handle platform redirects based on URL
-            if (isInURL("support.sizmek.com/dsp")) $("main,#sideNavigation").remove(), window.location.href = "/hc/" + currentLang + "?platform=dsp";
-            else if (isInURL("support.sizmek.com/newdsp")) $("main,#sideNavigation").remove(), window.location.href = "/hc/" + currentLang + "?platform=newdsp";
-            else if (isInURL("support.sizmek.com/dmp")) $("main,#sideNavigation").remove(), window.location.href = "/hc/" + currentLang + "?platform=dmp";
-            else if (isInURL("support.sizmek.com/mdx2.0")) $("main,#sideNavigation").remove(), window.location.href = "/hc/" + currentLang + "?platform=mdx_2_0";
-            else if (isInURL("support.sizmek.com/showall")) $("main,#sideNavigation").remove(), window.location.href = "/hc/" + currentLang + "?platform=showall";
-            else if (isInURL("support.sizmek.com/mdxnxt")) $("main,#sideNavigation").remove(), window.location.href = "/hc/" + currentLang + "?platform=mdx_nxt";
-            else if (isInURL("support.sizmek.com/supportkb")) $("main,#sideNavigation").remove(), window.location.href = "/hc/" + currentLang + "?platform=support_kb";
-            else if (isInURL("support.sizmek.com/status")) $("main,#sideNavigation").remove(), window.location.href = "/hc/" + currentLang + "/categories/201680143";
+            if (isInURL(".com/dsp")) $("main,#sideNavigation").remove(), window.location.href = "/hc/" + currentLang + "?platform=dsp";
+            else if (isInURL(".com/newdsp")) $("main,#sideNavigation").remove(), window.location.href = "/hc/" + currentLang + "?platform=newdsp";
+            else if (isInURL(".com/dmp")) $("main,#sideNavigation").remove(), window.location.href = "/hc/" + currentLang + "?platform=dmp";
+            else if (isInURL(".com/mdx2.0")) $("main,#sideNavigation").remove(), window.location.href = "/hc/" + currentLang + "?platform=mdx_2_0";
+            else if (isInURL(".com/showall")) $("main,#sideNavigation").remove(), window.location.href = "/hc/" + currentLang + "?platform=showall";
+            else if (isInURL(".com/mdxnxt")) $("main,#sideNavigation").remove(), window.location.href = "/hc/" + currentLang + "?platform=mdx_nxt";
+            else if (isInURL(".com/supportkb")) $("main,#sideNavigation").remove(), window.location.href = "/hc/" + currentLang + "?platform=support_kb";
+            else if (isInURL(".com/status")) $("main,#sideNavigation").remove(), window.location.href = "/hc/" + currentLang + "/categories/201680143";
 
             //unknown??
             if (isInURL("/error_preview")) {
@@ -166,10 +163,9 @@ $(function() {
             //help center admin category 200768493
             //important messages section 201341126
             //help center maintenance article 205990016
-            //unsupported browser article 206321873
             //url with #notice anchor
             //unuless current user is agent or manager
-            if (currentUser !== "manager" && currentUser !== "agent" && (currPageURL.match(/(\/200768493|\/201341126)/) || (currPageURL.match(/(\/205990016|\/206321873)/) && !isInURL("#notice")))) {
+            if (currentUser !== "manager" && currentUser !== "agent" && (currPageURL.match(/(\/200768493|\/201341126)/) || (currPageURL.match(/(\/205990016|\/206321873)/) || currPageURL.indexOf(unSupportedBrowser) > -1 && !isInURL("#notice")))) {
                 window.location.replace("/hc/" + currentLang + "/");
             } else if ((!isInURL("/articles/") || !isInURL("209729503") || !isInURL("type=Files")) && self == top) {
                 //otherwise display the document
@@ -265,6 +261,13 @@ $(function() {
                         height: "0px"
                     }, 100)
                 }
+
+                //resize side bar nav depending on top ZD top bar visibility
+                $("#sideNavigation").css("height", "calc(100% - " + (84 + parseInt($("zd-hc-navbar").css("margin-top"))) + "px)");
+
+                //adjust table fixed header position if ZD top bar visible
+                (parseInt($("zd-hc-navbar").css("margin-top"), 10) < 0) ? $("table.stickyHeader").css("top", "16px"): $("table.stickyHeader").css("top", "64px");
+
             });
 
             //hide table of content if it overlap article contents
@@ -294,6 +297,7 @@ $(function() {
                 }
             });
 
+            /* fix continous DOM modification of article-body element
             setInterval(function() {
 
                 //resize side bar nav depending on top ZD top bar visibility
@@ -305,6 +309,8 @@ $(function() {
                 $(window).scroll();
 
             }, 100);
+            */
+            $(window).scroll();
 
             //if comment is disabled, hide all comments
             if ($(".comment-form").length == 0) $(".article-comments").hide();
@@ -327,14 +333,19 @@ $(function() {
                 //$("#accountLink").hide();
                 //$("#contactLink").show();
 
-            } else {
+            }
+
+
+            /* Updated to community portal
+            else {
 
                 //adjust idea portal link for internal users
                 $("#suggestionLink").attr("href", "https://sizmekmdxinternal.ideas.aha.io/portal_session/new");
 
                 //below does not work, need to call it when menu populated??
                 $("#sideSuggestionLink").find("a").attr("href", "https://sizmekmdxinternal.ideas.aha.io/portal_session/new");
-            }
+            } */
+
 
             //for anonymouse user, hide additional resources link, show sign-in for more message
             if (currentUser == "anonymous") {
@@ -528,7 +539,7 @@ $(function() {
                         storage.removeItem("manualPlatTrigger"), storage.setItem("global-filterSetting", $(this).attr("value"));
 
                         //if not search page, redirect to the newly selected platform homepage
-                        if (!cookieFilter && !isInURL("/search?")) window.location = mainURL;
+                        if (!cookieFilter && !isInURL("/search?")) window.location = "/hc/";
 
                         //if search result page, reload current page
                         else if (isInURL("/search?")) location.reload();
@@ -553,7 +564,7 @@ $(function() {
                                 getNavCatId = resData.section.category_id;
                                 addSectionToList(currSectionID);
                             })
-                            //check platform value in storage and switch platform to designated platform of the article 
+                            //check platform value in storage and switch platform to designated platform of the article
                             switchPlatform(artTags, prevPlat);
 
                         }).fail(function() {
@@ -963,7 +974,7 @@ $(function() {
                         changeSwitchTag(tagPlatform, prevPlat);
                     }
 
-                    //compare article platform vs 
+                    //compare article platform vs
                     function changeSwitchTag(platform, prevPlat) {
 
                         if (platform == "") {
@@ -1128,7 +1139,8 @@ $(function() {
                             var additionalResources = currentProduct.pop();
 
                             for (var i = 0; i < currentProduct.length; i++) {
-                                if (currentProduct[i] && currentProduct[i].v) {
+
+                                if (currentProduct[i].v) {
 
                                     if (currentProduct[i].type === "text") {
 
@@ -1136,7 +1148,7 @@ $(function() {
 
                                         for (var x = 0; x < currentProduct[i].children.length; x++) {
 
-                                            if (currentProduct[i].children[x] && currentProduct[i].children[x].v) {
+                                            if (currentProduct[i].children[x].v) {
 
                                                 if (currentProduct[i].children[x].type === "category") stringifiedElements += initializeCategory(currentProduct[i].children[x]);
                                                 else if (currentProduct[i].children[x].type === "section") stringifiedElements += initializeSection(currentProduct[i].children[x]);
@@ -1270,7 +1282,7 @@ $(function() {
                 });
 
                 else {
-                    //for non support-kb platform 
+                    //for non support-kb platform
                     var showPlat = $("#switchTag").val() == "mdx_2_0" ? "mdx2-title" : "mdxnxt-title";
                     var hidePlat = showPlat == "mdx2-title" ? "mdxnxt-title" : "mdx2-title";
 
@@ -1417,6 +1429,7 @@ $(function() {
                         clearInterval(checkRdy);
 
                         var tempCategories = [];
+                        var searchCatIds = [];
                         var tempPlatforms = ["mdx2", "mdxnxt", "dsp", "newdsp", "dmp"];
 
                         if ($("#query").val().length > 1) {
@@ -1428,6 +1441,7 @@ $(function() {
 
                             searchPlat = "&label_names=" + filterPlat;
 
+                            /*
                             if ($("#switchTag").val() == "support_kb") {
                                 searchPlat = "&category=" + kbCategories;
                                 filterPlat = "supportkb";
@@ -1435,6 +1449,10 @@ $(function() {
                                 searchPlat = "&category=360000026612";
                                 filterPlat = "dmp";
                             }
+                            */
+
+                            if ($("#switchTag").val() == "support_kb") filterPlat = "supportkb";
+                            else if ($("#switchTag").val() == "dmp") filterPlat = "dmp";
 
                             var findPlat = tempPlatforms.indexOf(filterPlat);
 
@@ -1443,9 +1461,22 @@ $(function() {
 
                         $.each(categoryArray, function(i, category) {
 
-                            if (category.desc.indexOf(filterPlat) > -1) tempCategories.push([category.name, category.id]);
+                            //if (category.desc.indexOf(filterPlat) > -1) tempCategories.push([category.name, category.id]);
 
-                            else if (category.desc.indexOf("@supportkb") < 0 && category.desc.indexOf("@other") < 0 && filterPlat !== "supportkb") {
+                            //else if (category.desc.indexOf("@supportkb") < 0 && category.desc.indexOf("@other") < 0 && filterPlat !== "supportkb") {
+                            var filtFound = false;
+
+                            for (var i = 0; i < tempPlatforms.length; i++) {
+                                if (category.desc.indexOf(tempPlatforms[i]) != -1) filtFound = true;
+                            }
+
+                            if (category.desc.indexOf(filterPlat) > -1 || !filtFound) {
+
+                                tempCategories.push([category.name, category.id]);
+
+                                if (category.id != 200768493 && category.id != 201680143) searchCatIds.push(category.id);
+
+                            } else if (category.desc.indexOf("@supportkb") < 0 && category.desc.indexOf("@other") < 0 && filterPlat !== "supportkb") {
 
                                 var regv = new RegExp(tempPlatforms.join("|"), 'g');
 
@@ -1455,6 +1486,7 @@ $(function() {
 
                         tempCategories.sort();
 
+                        var searchCat = "&category=" + searchCatIds;
                         var options = "";
 
                         for (var i = 0; i < tempCategories.length; i++)
@@ -1464,10 +1496,10 @@ $(function() {
 
                         searchQuery = $("#query").val().trim();
 
-                        var hashCount = (searchQuery.match(/#/g) || []).length
+                        var hashCount = (searchQuery.match(/#/g) || []).length;
 
-                        if (searchQuery.substr(0, 1) == "#") searchURL = "/api/v2/help_center/articles/search.json?query=" + encodeURIComponent(searchQuery.replace(" ", "+")) + "+-%22Revision%20ver.%22&locale=" + currentLang + searchPlat + "&label_names=" + searchQuery.replace("#", "Tags:") + "&per_page=8&page=" + searchCurrPage;
-                        else searchURL = "/api/v2/help_center/articles/search.json?query=" + encodeURIComponent(searchQuery) + "+-%22Revision%20ver.%22&locale=" + currentLang + searchPlat + "&per_page=8&page=" + searchCurrPage;
+                        if (searchQuery.substr(0, 1) == "#") searchURL = "/api/v2/help_center/articles/search.json?query=" + encodeURIComponent(searchQuery.replace(" ", "+")) + "&locale=" + currentLang + searchCat + searchPlat + "&label_names=" + searchQuery.replace("#", "Tags:") + "&per_page=8&page=" + searchCurrPage;
+                        else searchURL = "/api/v2/help_center/articles/search.json?query=" + encodeURIComponent(searchQuery) + "&locale=" + currentLang + searchCat + searchPlat + "&per_page=8&page=" + searchCurrPage;
 
                         if ($("#switchTag").val() == "support_kb") hcTags = kbTags;
                         if ($("#switchTag").val() == "showall") $.extend(true, hcTags, kbTags);
@@ -1481,7 +1513,7 @@ $(function() {
 
                             labelFilter = "&label_names=" + hctag;
 
-                            findTag = "/api/v2/help_center/articles/search.json?query=" + encodeURIComponent(searchQuery) + "+-%22Revision%20ver.%22&locale=" + currentLang + labelFilter + "&per_page=1";
+                            findTag = "/api/v2/help_center/articles/search.json?query=" + encodeURIComponent(searchQuery) + "&locale=" + currentLang + labelFilter + "&per_page=1";
 
                             $.get(findTag).done(function(data) {
 
@@ -1521,16 +1553,20 @@ $(function() {
                                             if ($("#query").val().length > 1) {
                                                 if ($("#switchTag").val() == "mdx_2_0") searchPlatform = "mdx2";
                                                 if ($("#switchTag").val() == "mdx_nxt") searchPlatform = "mdxnxt";
-                                                if ($("#switchTag").val() == "support_kb" && $("#categoryFilter").val() == "") searchCat = "&category=" + kbCategories
+                                                //if ($("#switchTag").val() == "support_kb" && $("#categoryFilter").val() == "") searchCat = "&category=" + kbCategories
+                                                if ($("#categoryFilter").val() == "" && $("#switchTag").val() == "support_kb") searchCat = "&category=" + kbCategories;
                                             }
                                             if (checked && $("#categoryFilter").val() == "") {
-                                                searchURL = "/api/v2/help_center/articles/search.json?query=" + encodeURIComponent(searchQuery) + "+-%22Revision%20ver.%22&locale=" + currentLang + "&per_page=100&label_names=" + $(this).attr("val") + searchCat + "&page=" + searchCurrPage;
+                                                //searchURL = "/api/v2/help_center/articles/search.json?query=" + encodeURIComponent(searchQuery) + "+-%22Revision%20ver.%22&locale=" + currentLang + "&per_page=100&label_names=" + $(this).attr("val") + searchCat + "&page=" + searchCurrPage;
+                                                searchURL = "/api/v2/help_center/articles/search.json?query=" + encodeURIComponent(searchQuery) + "&locale=" + currentLang + "&per_page=100&label_names=" + $(this).attr("val") + searchCat + "&page=" + searchCurrPage;
                                                 searchArticles(searchURL, false);
                                             } else if (!checked && $("#categoryFilter").val() !== "") {
-                                                searchURL = "/api/v2/help_center/articles/search.json?query=" + encodeURIComponent(searchQuery) + "+-%22Revision%20ver.%22&locale=" + currentLang + "&category=" + $("#categoryFilter").val() + "&per_page=8&label_names=" + searchPlatform + "&page=" + searchCurrPage;
+                                                //searchURL = "/api/v2/help_center/articles/search.json?query=" + encodeURIComponent(searchQuery) + "+-%22Revision%20ver.%22&locale=" + currentLang + "&category=" + $("#categoryFilter").val() + "&per_page=8&label_names=" + searchPlatform + "&page=" + searchCurrPage;
+                                                searchURL = "/api/v2/help_center/articles/search.json?query=" + encodeURIComponent(searchQuery) + "&locale=" + currentLang + "&category=" + $("#categoryFilter").val() + "&per_page=8&label_names=" + filterPlat + "&page=" + searchCurrPage;
                                                 searchArticles(searchURL, true);
                                             } else if (checked && $("#categoryFilter").val() !== "") {
-                                                searchURL = "/api/v2/help_center/articles/search.json?query=" + encodeURIComponent(searchQuery) + "+-%22Revision%20ver.%22&locale=" + currentLang + "&category=" + $("#categoryFilter").val() + "&per_page=100&label_names=" + $(this).attr("val") + "&page=" + searchCurrPage;
+                                                //searchURL = "/api/v2/help_center/articles/search.json?query=" + encodeURIComponent(searchQuery) + "+-%22Revision%20ver.%22&locale=" + currentLang + "&category=" + $("#categoryFilter").val() + "&per_page=100&label_names=" + $(this).attr("val") + "&page=" + searchCurrPage;
+                                                searchURL = "/api/v2/help_center/articles/search.json?query=" + encodeURIComponent(searchQuery) + "&locale=" + currentLang + "&category=" + $("#categoryFilter").val() + "&per_page=100&label_names=" + $(this).attr("val") + "&page=" + searchCurrPage;
                                                 searchArticles(searchURL, false);
                                             } else {
                                                 searchURL = backupURL;
@@ -1573,7 +1609,7 @@ $(function() {
                 var pagShow = pp == undefined ? true : pp;
 
                 //show loader
-                $(".search-results-list-temp").html('<li class="loaderSpin"><img src="/hc/theme_assets/539845/200023575/spingrey.gif" style="border:0px"></li>');
+                $(".search-results-list-temp").html("<li class='loaderSpin'><img src='" + gSZMKspingreyGIFURL + "' style=border:0px'></li>");
 
                 //perform search
                 $.get(searchURL).done(function(data) {
@@ -2017,7 +2053,7 @@ $(function() {
                 };
 
                 $("ul.article-list").after(" <ul id='show-data' class='article-list'></ul>");
-                $("ul#show-data").append("<ul id='sectionloader' style='display:none' ><img src='/hc/theme_assets/539845/200023575/spingrey.gif' style='border:0px; padding:30px 0px'></ul>");
+                $("ul#show-data").append("<ul id='sectionloader' style='display:none' ><img src='" + gSZMKspingreyGIFURL + "' style='border:0px; padding:30px 0px'></ul>");
                 $("body.support_kb").find("ul.article-list:first").hide();
 
                 var currSectionId = currPageURL.split("sections/")[1].split("#")[0].split("-")[0].split("?")[0];
@@ -2289,9 +2325,7 @@ $(function() {
             //end test
 
             function sectionListStorage() {
-
                 if (storage.getItem(HelpCenter.user.email + "-allSections" + helpCenterVer + currentLang) === null) {
-
                     $.get(navSectionAPI).done(function(data) {
                         navSectionAPI = data.next_page;
                         var navnewArray = $.map(data.sections, function(section, i) {
@@ -2317,16 +2351,30 @@ $(function() {
                             storage.setItem(HelpCenter.user.email + "-allSections" + helpCenterVer + currentLang, JSON.stringify(navsecArray));
                             NavCatArrayready = 1;
                         }
+                        if (currentUser === "anonymous") {
+                            navsecArray = removeDuplicates(navsecArray, 'id');
+                        }
                     });
 
                 } else {
                     navsecArray = JSON.parse(storage.getItem(HelpCenter.user.email + "-allSections" + helpCenterVer + currentLang));
+                    if (currentUser === "anonymous") {
+                        navsecArray = removeDuplicates(navsecArray, 'id');
+                    }
                     NavCatArrayready = 1;
                 }
             }
 
-            sectionListStorage();
+            //remove duplicate object
+            function removeDuplicates(myArr, prop) {
+                return myArr.filter(function(obj, pos, arr) {
+                    return arr.map(function(mapObj) {
+                        return mapObj[prop]
+                    }).indexOf(obj[prop]) === pos;
+                });
+            }
 
+            sectionListStorage();
             var secloadstatus = 0;
 
             function addSectionToList(sectionID) {
@@ -2346,20 +2394,21 @@ $(function() {
 
                 if (currentUser !== "anonymous") {
 
-                    $(selectCatId).find("i.fa").addClass("fas fa-circle-notch fa-spin faLoader");
+                    $(selectCatId).find("i.fa").addClass("fa-circle-o-notch fa-spin faLoader");
 
                     $("a.categoryDrop").prop("disabled", true);
                     $("i#icon-category").prop("disabled", true);
                 }
                 $.each(navsecArray, function(i, section) {
-                    var isSectionDescValid = true;
-                    if(section.description){
-                        if(section.description.indexOf("hidden") || section["description"].indexOf(hidePlat)){
-                            isSectionDescValid = false;
+                    var descriptionValid = true;
+                    if (section.description) {
+                        if (section.description.indexOf("hidden") > 0 - 1 && section["description"].indexOf(hidePlat) > -1) {
+                            descriptionValid = false;
                         }
                     }
-                    if (isSectionDescValid && section["category"] == getNavCatId) {
+                    if (descriptionValid && section["category"] == getNavCatId) {
                         chkinit++;
+
                         $.getJSON("/api/v2/help_center/articles/search.json?section=" + section["id"]).done(function(articles) {
                             var isSectionValid = false;
                             var selectedPlatform = $("#switchTag").val(),
@@ -2386,23 +2435,24 @@ $(function() {
                                         break;
                                     }
                                 }
-                            }  
+                            }
+
                             if (isSectionValid) {
                                 var title = cleanTextOnly(cleanTextOnly(section["name"]));
                                 sArr.push(['<li class="section" id="' + section["id"] + '"><i id="icon-section" class="fa fa-angle-right"> </i> <a title="' + title + '" class="sectionDrop">' + cleanTextOnly(section["name"]) + '</a><ul class="sub-group-list" style="overflow: hidden; display:none;"></ul></li>', section.position])
                             }
+
                             chkcomplete++;
                             if (chkinit == chkcomplete) {
                                 sArr.sort(function(a, b) {
                                     return a[1] - b[1]
                                 });
-
                                 $.each(sArr, function(i, v) {
                                     $("#nav-list").find(selectCatId).find(".group-list").append(v[0]);
                                 })
                                 $("#nav-list").find(selectCatId).find(".group-list").slideDown();
 
-                                
+                                $(selectCatId).find("i.fa").removeClass("fa-circle-o-notch fa-spin faLoader");
 
                                 $("a.categoryDrop").prop("disabled", false);
                                 $("i#icon-category").prop("disabled", false);
@@ -2412,7 +2462,6 @@ $(function() {
                                     openSection();
                                 }
                             }
-                            $(selectCatId).find("i.fa").removeClass("fas fa-circle-notch fa-spin faLoader");
                         })
                     }
                 });
@@ -2421,6 +2470,7 @@ $(function() {
                 }
                 secloadstatus = 0;
             }
+
             $("#nav-list").on("click", "i#icon-category", function() {
                 if (secloadstatus == 0)
                     if ($(this).nextAll("ul").eq(0).find("li").length == 0) {
@@ -2432,6 +2482,7 @@ $(function() {
                         }
                     } else secloadstatus = 0;
             });
+
             $("#nav-list").on("click", "a.categoryDrop", function() {
                 if (secloadstatus == 0)
                     if ($(this).nextAll("ul").eq(0).find("li").length == 0) {
@@ -2454,7 +2505,7 @@ $(function() {
                         if ($("#nav-list").find(selectSecId).length) {
                             if (artloadstatus == 0) {
                                 if ($(selectSecId).find("loader").length) {} else {
-                                    $("#" + getnavSecId).find("i.fa").addClass("fas fa-circle-notch fa-spin faLoader");
+                                    $("#" + getnavSecId).find("i.fa").addClass("fa-circle-o-notch fa-spin faLoader");
                                 }
                                 $("a.sectionDrop").prop("disabled", true);
                                 $("i#icon-section").prop("disabled", true);
@@ -2476,7 +2527,7 @@ $(function() {
                         if ($("#nav-list").find(selectSecId).length) {
                             if (artloadstatus == 0) {
                                 if ($(selectSecId).find("loader").length) {} else {
-                                    $("#" + getnavSecId).find("i.fa").addClass("fas fa-circle-notch fa-spin faLoader");
+                                    $("#" + getnavSecId).find("i.fa").addClass("fa-circle-o-notch fa-spin faLoader");
                                 }
                                 $("a.sectionDrop").prop("disabled", true);
                                 $("i#icon-section").prop("disabled", true);
@@ -2558,19 +2609,19 @@ $(function() {
             function checkHelpTopicAvail() {
 
                 if (sessionStorage.getItem('hasHT') == null) {
-                    $.get("/api/v2/help_center/" + currentLang + "/categories/"+ gSZMKHelpTopicCatID +"/sections.json").done(function(res) {
+                    $.get("/api/v2/help_center/" + currentLang + "/categories/" + gSZMKHelpTopicCatID + "/sections.json").done(function(res) {
                         if (res.sections.length > 0) {
                             sessionStorage.setItem('hasHT', 1);
                         } else {
                             sessionStorage.setItem('hasHT', 0);
-                            $("li.category#"+gSZMKHelpTopicCatID).remove();
+                            $("li.category#" + gSZMKHelpTopicCatID).remove();
                         }
                     });
 
                 } else {
                     var hasHelpTopics = sessionStorage.getItem('hasHT');
                     if (hasHelpTopics == 0) {
-                        $("li.category#"+gSZMKHelpTopicCatID).remove();
+                        $("li.category#" + gSZMKHelpTopicCatID).remove();
                     }
                 }
             }
@@ -2838,7 +2889,7 @@ $(function() {
                                 addIcons();
                                 AddListToggle();
                                 groupArticleList();
-                                $("#" + currSectionId).find("i.fa").removeClass("fas fa-circle-notch fa-spin faLoader");
+                                $("#" + currSectionId).find("i.fa").removeClass("fa-circle-o-notch fa-spin faLoader");
                                 NavArtArrayready = 1;
                                 artloadstatus = 0;
                                 highlightTitle();
@@ -2855,7 +2906,7 @@ $(function() {
                         AddListToggle();
                         groupArticleList();
 
-                        $("#" + currSectionId).find("i.fa").removeClass("fas fa-circle-notch fa-spin faLoader");
+                        $("#" + currSectionId).find("i.fa").removeClass("fa-circle-o-notch fa-spin faLoader");
 
                         NavArtArrayready = 1;
                         artloadstatus = 0;
@@ -3172,7 +3223,7 @@ $(function() {
                 var html = "";
                 var ArtId = currPageURL.split("articles/")[1].split("#")[0].split("-")[0].split("?")[0];
 
-                $.getJSON("/api/v2/search.json?query=type:ticket+tags:usekb_" + ArtId, function(data) {
+                $.getJSON("/api/v2/search.json?per_page=30&query=type:ticket+tags:usekb_" + ArtId, function(data) {
 
                     relatedTickets = data.results;
 
@@ -3200,7 +3251,8 @@ $(function() {
                     $(".status-closed").text("CLOSED");
                     $(".status-solved").text("SOLVED");
 
-                    if (tcount > 0 && appView == false) {
+                    if (tcount > 0 && (appView == false || appView == undefined)) {
+
                         $("#caseExamples, #relatedTicketsTable, #relatedTicketsTable-header, #relatedTicketsTable-footer").show();
                         styleTicketTable();
                     }
@@ -3208,6 +3260,7 @@ $(function() {
             }
 
             if ($(".header").html().indexOf("Message Board") < 0 && currentUser !== "end_user" && currentUser !== "anonymous" && isInURL("/articles/") && !isInURL("209729503")) {
+
                 if ($("body:contains('Case Examples')").length == 0) $('<h2 id="caseExamples">Case Examples</h2><table></table>').insertBefore("body .article-attachments:last");
                 if ($("h2:contains('Case Examples')").next("p").length > 0) $("h2:contains('Case Examples')").next("p").remove();
                 if ($("h2:contains('Case Examples')").next("br").length > 0) $("h2:contains('Case Examples')").next("br").remove();
@@ -3446,7 +3499,7 @@ $(function() {
             var textQuery = $("#query");
             textQuery.val($("#query").val() + " " + appendTag);
             textQuery.focus();
-            window.location.href = "https://support.sizmek.com/hc/en-us/search?utf8=%E2%9C%93&query=" + encodeURIComponent(textQuery.val()) + "&commit=Search"
+            window.location.href = "/hc/en-us/search?utf8=%E2%9C%93&query=" + encodeURIComponent(textQuery.val()) + "&commit=Search"
         });
 
 
@@ -3456,14 +3509,14 @@ $(function() {
             var textQuery = $("#query");
             textQuery.val($("#query").val() + " " + appendTag);
             textQuery.focus();
-            window.location.href = "https://support.sizmek.com/hc/en-us/search?utf8=%E2%9C%93&query=" + encodeURIComponent(textQuery.val()) + "&commit=Search"
+            window.location.href = "/hc/en-us/search?utf8=%E2%9C%93&query=" + encodeURIComponent(textQuery.val()) + "&commit=Search"
         });
 
         $('body').on('click', 'a.hashTags', function() {
             var currTag = $(this).find('.tagName:first').text();
             $("#query").val(currTag);
             $("#query").focus();
-            window.location.href = "https://support.sizmek.com/hc/en-us/search?utf8=%E2%9C%93&query=" + encodeURIComponent(currTag) + "&commit=Search";
+            window.location.href = "/hc/en-us/search?utf8=%E2%9C%93&query=" + encodeURIComponent(currTag) + "&commit=Search";
         });
 
         $('body').on('mouseover', 'a.hashTags', function() {
